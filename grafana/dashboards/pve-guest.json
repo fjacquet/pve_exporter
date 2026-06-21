@@ -340,7 +340,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${datasource}" },
-          "expr": "pve_ha_state{cluster=~\"$cluster\"} == 1 * on(cluster,id) group_left(name) pve_guest_info{name=~\"$guest\",cluster=~\"$cluster\"}",
+          "expr": "(pve_ha_state{id=~\"(qemu|lxc)/.*\",cluster=~\"$cluster\"} * on(cluster,id) group_left(name) pve_guest_info{name=~\"$guest\",cluster=~\"$cluster\"}) == 1",
           "legendFormat": "{{state}}",
           "refId": "A",
           "instant": true
@@ -373,7 +373,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${datasource}" },
-          "expr": "pve_lock_state{cluster=~\"$cluster\"} == 1 * on(cluster,id) group_left(name) pve_guest_info{name=~\"$guest\",cluster=~\"$cluster\"}",
+          "expr": "(pve_lock_state{id=~\"(qemu|lxc)/.*\",cluster=~\"$cluster\"} * on(cluster,id) group_left(name) pve_guest_info{name=~\"$guest\",cluster=~\"$cluster\"}) == 1",
           "legendFormat": "{{state}}",
           "refId": "A",
           "instant": true
@@ -554,7 +554,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${datasource}" },
-          "expr": "pve_ha_state{cluster=~\"$cluster\"} * on(cluster,id) group_left(name) pve_guest_info{name=~\"$guest\",cluster=~\"$cluster\"}",
+          "expr": "pve_ha_state{id=~\"(qemu|lxc)/.*\",cluster=~\"$cluster\"} * on(cluster,id) group_left(name) pve_guest_info{name=~\"$guest\",cluster=~\"$cluster\"}",
           "legendFormat": "{{state}}",
           "refId": "A"
         }
@@ -588,7 +588,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${datasource}" },
-          "expr": "pve_lock_state{cluster=~\"$cluster\"} * on(cluster,id) group_left(name) pve_guest_info{name=~\"$guest\",cluster=~\"$cluster\"}",
+          "expr": "pve_lock_state{id=~\"(qemu|lxc)/.*\",cluster=~\"$cluster\"} * on(cluster,id) group_left(name) pve_guest_info{name=~\"$guest\",cluster=~\"$cluster\"}",
           "legendFormat": "{{state}}",
           "refId": "A"
         }
@@ -692,34 +692,45 @@
               "cluster 3": true,
               "guest 2": true,
               "guest 3": true,
+              "name 2": true,
+              "name 3": true,
               "schedule 2": true,
               "schedule 3": true,
               "source 2": true,
               "source 3": true,
               "target 2": true,
-              "target 3": true
+              "target 3": true,
+              "type 2": true,
+              "type 3": true,
+              "Value #info": true
             },
             "renameByName": {
               "id": "job_id",
               "guest": "guest",
               "guest 1": "guest",
+              "name": "name",
+              "name 1": "name",
               "schedule": "schedule",
               "schedule 1": "schedule",
               "source": "source",
               "source 1": "source",
               "target": "target",
               "target 1": "target",
-              "Value #A": "failed_syncs",
-              "Value #B": "last_sync_age_s"
+              "type": "type",
+              "type 1": "type",
+              "Value #failed": "failed_syncs",
+              "Value #age": "last_sync_age_s"
             },
             "indexByName": {
               "job_id": 0,
               "guest": 1,
-              "source": 2,
-              "target": 3,
-              "schedule": 4,
-              "failed_syncs": 5,
-              "last_sync_age_s": 6
+              "name": 2,
+              "source": 3,
+              "target": 4,
+              "type": 5,
+              "schedule": 6,
+              "failed_syncs": 7,
+              "last_sync_age_s": 8
             }
           }
         }
@@ -727,7 +738,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${datasource}" },
-          "expr": "pve_replication_info{cluster=~\"$cluster\"} * on(cluster,id) group_left(name) pve_guest_info{name=~\"$guest\",cluster=~\"$cluster\"}",
+          "expr": "pve_replication_info{cluster=~\"$cluster\"} * on(cluster,guest) group_left(name) label_replace(pve_guest_info{name=~\"$guest\",cluster=~\"$cluster\"}, \"guest\", \"$1\", \"id\", \"(.+)\")",
           "legendFormat": "{{id}}",
           "refId": "info",
           "format": "table",
@@ -735,17 +746,17 @@
         },
         {
           "datasource": { "type": "prometheus", "uid": "${datasource}" },
-          "expr": "pve_replication_failed_syncs{cluster=~\"$cluster\"} * on(cluster,id) group_left(name) pve_guest_info{name=~\"$guest\",cluster=~\"$cluster\"}",
+          "expr": "pve_replication_failed_syncs{cluster=~\"$cluster\"} * on(cluster,id) group_left(guest,name,source,target,type) (pve_replication_info{cluster=~\"$cluster\"} * on(cluster,guest) group_left(name) label_replace(pve_guest_info{name=~\"$guest\",cluster=~\"$cluster\"}, \"guest\", \"$1\", \"id\", \"(.+)\"))",
           "legendFormat": "{{id}}",
-          "refId": "A",
+          "refId": "failed",
           "format": "table",
           "instant": true
         },
         {
           "datasource": { "type": "prometheus", "uid": "${datasource}" },
-          "expr": "time() - pve_replication_last_sync_timestamp_seconds{cluster=~\"$cluster\"} * on(cluster,id) group_left(name) pve_guest_info{name=~\"$guest\",cluster=~\"$cluster\"}",
+          "expr": "(time() - pve_replication_last_sync_timestamp_seconds{cluster=~\"$cluster\"}) * on(cluster,id) group_left(guest,name) (pve_replication_info{cluster=~\"$cluster\"} * on(cluster,guest) group_left(name) label_replace(pve_guest_info{name=~\"$guest\",cluster=~\"$cluster\"}, \"guest\", \"$1\", \"id\", \"(.+)\"))",
           "legendFormat": "{{id}}",
-          "refId": "B",
+          "refId": "age",
           "format": "table",
           "instant": true
         }
