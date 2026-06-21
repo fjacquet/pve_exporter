@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync/atomic"
 	"time"
 
 	"github.com/fjacquet/pve_exporter/internal/models"
@@ -26,12 +27,15 @@ type Doer interface {
 	Get(ctx context.Context, path string, out interface{}) error
 	// Name returns the configured target (cluster) name.
 	Name() string
+	// RequestErrors returns the cumulative count of failed PVE API requests.
+	RequestErrors() int64
 }
 
 // Client is a lean resty-based PVE API client using static API-token auth.
 type Client struct {
-	name string
-	http *resty.Client
+	name          string
+	http          *resty.Client
+	requestErrors atomic.Int64
 }
 
 // envelope models the {"data": ...} wrapper every PVE endpoint returns.
@@ -82,13 +86,18 @@ func NewClient(cfg models.ClusterConfig, trace bool) *Client {
 // Name returns the target name.
 func (c *Client) Name() string { return c.name }
 
+// RequestErrors returns the cumulative count of failed PVE API requests.
+func (c *Client) RequestErrors() int64 { return c.requestErrors.Load() }
+
 // Get fetches path and unmarshals the "data" field into out.
 func (c *Client) Get(ctx context.Context, path string, out interface{}) error {
 	resp, err := c.http.R().SetContext(ctx).Get(path)
 	if err != nil {
+		c.requestErrors.Add(1)
 		return fmt.Errorf("GET %s: %w", path, err)
 	}
 	if resp.StatusCode() != http.StatusOK {
+		c.requestErrors.Add(1)
 		return fmt.Errorf("GET %s: unexpected status %d", path, resp.StatusCode())
 	}
 	var env envelope

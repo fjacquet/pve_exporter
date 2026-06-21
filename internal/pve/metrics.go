@@ -43,7 +43,13 @@ const (
 	metricReplLastTry  = "pve_replication_last_try_timestamp_seconds"
 	metricReplNextSync = "pve_replication_next_sync_timestamp_seconds"
 	metricReplFailed   = "pve_replication_failed_syncs"
+
+	metricCollectionDuration = "pve_collection_duration_seconds"
+	metricRequestErrors      = "pve_request_errors_total"
 )
+
+// haNodeStates enumerates the HA states reported for nodes via /cluster/ha/status/current.
+var haNodeStates = []string{"online", "maintenance", "unknown", "fence", "gone"}
 
 // haGuestStates enumerates the HA states reported for guests; every series is
 // emitted (1 for the active state, 0 otherwise) so the label-key set is stable.
