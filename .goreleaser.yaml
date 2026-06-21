@@ -1,0 +1,145 @@
+# GoReleaser — cross-compiled binaries, archives, checksums, CycloneDX SBOM, GitHub Release.
+# Replaces the hand-rolled `make release`. Validate locally with `goreleaser check`
+# and dry-run with `make release-snapshot`.
+# Docs: https://goreleaser.com
+version: 2
+
+project_name: pve_exporter
+
+# Normalise the optional tap PAT so templates can truthy-check it even when it is
+# absent (local snapshots) or empty (CI without the secret) — both mean "skip the cask".
+env:
+  - HOMEBREW_TAP_GITHUB_TOKEN={{ if isEnvSet "HOMEBREW_TAP_GITHUB_TOKEN" }}{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}{{ end }}
+
+before:
+  hooks:
+    - go mod download
+
+builds:
+  - id: pve_exporter
+    main: .
+    binary: pve_exporter
+    env:
+      - CGO_ENABLED=0
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    flags:
+      - -trimpath
+    # Mirrors the Makefile LDFLAGS: strip + inject main.version.
+    ldflags:
+      - -s -w -X main.version={{ .Version }}
+    # Reproducible builds: stamp binaries with the commit time, not build time.
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - id: pve_exporter
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - LICENSE
+      - README.md
+      - config.yaml
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+# Module-wide CycloneDX SBOM via cyclonedx-gomod (must be on PATH — `make tools-sbom`).
+# GoReleaser runs sbom commands inside ./dist, so the module root is `../`.
+# `artifacts: any` runs the command once and emits a single module SBOM, matching
+# the content of `make sbom` (cyclonedx-gomod mod -licenses -json).
+sboms:
+  - id: cyclonedx-gomod
+    artifacts: any
+    documents:
+      - "{{ .ProjectName }}_{{ .Version }}.sbom.cdx.json"
+    cmd: cyclonedx-gomod
+    args: ["mod", "-licenses", "-json", "-output", "$document", "../"]
+
+# Docker image published to GHCR using the pre-built binary from the builds step.
+dockers:
+  - id: pve_exporter-amd64
+    ids: [pve_exporter]
+    goos: linux
+    goarch: amd64
+    image_templates:
+      - "ghcr.io/fjacquet/pve_exporter:{{ .Version }}-amd64"
+      - "ghcr.io/fjacquet/pve_exporter:latest-amd64"
+    dockerfile: Dockerfile.goreleaser
+    build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--label=org.opencontainers.image.title={{ .ProjectName }}"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
+      - "--label=org.opencontainers.image.created={{ .Date }}"
+      - "--label=org.opencontainers.image.source=https://github.com/fjacquet/pve_exporter"
+    extra_files:
+      - /etc/ssl/certs/ca-certificates.crt
+
+  - id: pve_exporter-arm64
+    ids: [pve_exporter]
+    goos: linux
+    goarch: arm64
+    image_templates:
+      - "ghcr.io/fjacquet/pve_exporter:{{ .Version }}-arm64"
+      - "ghcr.io/fjacquet/pve_exporter:latest-arm64"
+    dockerfile: Dockerfile.goreleaser
+    build_flag_templates:
+      - "--platform=linux/arm64"
+      - "--label=org.opencontainers.image.title={{ .ProjectName }}"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
+      - "--label=org.opencontainers.image.created={{ .Date }}"
+      - "--label=org.opencontainers.image.source=https://github.com/fjacquet/pve_exporter"
+    extra_files:
+      - /etc/ssl/certs/ca-certificates.crt
+
+docker_manifests:
+  - name_template: "ghcr.io/fjacquet/pve_exporter:{{ .Version }}"
+    image_templates:
+      - "ghcr.io/fjacquet/pve_exporter:{{ .Version }}-amd64"
+      - "ghcr.io/fjacquet/pve_exporter:{{ .Version }}-arm64"
+
+  - name_template: "ghcr.io/fjacquet/pve_exporter:latest"
+    image_templates:
+      - "ghcr.io/fjacquet/pve_exporter:latest-amd64"
+      - "ghcr.io/fjacquet/pve_exporter:latest-arm64"
+
+# Homebrew cask (macOS only — casks are not supported on Linux). Published to a separate
+# tap repo, which requires a cross-repo PAT (HOMEBREW_TAP_GITHUB_TOKEN); the default
+# GITHUB_TOKEN cannot push to another repo. `skip_upload` keeps releases (and local
+# snapshots) working until that secret + the tap repo exist.
+# Install: brew install --cask fjacquet/tap/pve_exporter
+homebrew_casks:
+  - name: pve_exporter
+    skip_upload: '{{ if .Env.HOMEBREW_TAP_GITHUB_TOKEN }}false{{ else }}true{{ end }}'
+    repository:
+      owner: fjacquet
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    binaries:
+      - pve_exporter
+    homepage: https://github.com/fjacquet/pve_exporter
+    description: Prometheus exporter for Proxmox VE (pve_exporter)
+    # The binary is unsigned; strip the quarantine bit so Gatekeeper doesn't block it.
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/pve_exporter"]
+          end
+
+# Use GitHub's native auto-generated release notes (mirrors the previous
+# softprops/action-gh-release `generate_release_notes: true`).
+changelog:
+  use: github-native
+
+release:
+  github:
+    owner: fjacquet
+    name: pve_exporter
+  draft: false
+  prerelease: auto

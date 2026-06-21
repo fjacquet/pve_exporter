@@ -1,0 +1,19 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    uses: fjacquet/ci/.github/workflows/go-release.yml@v1 # nosemgrep: github-actions.security.third-party-action-not-pinned-to-commit-sha
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+    secrets:
+      HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}

@@ -1,0 +1,19 @@
+name: Docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'README.md'
+      - 'mkdocs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  docs:
+    uses: fjacquet/ci/.github/workflows/docs-publish.yml@v1 # nosemgrep: github-actions.security.third-party-action-not-pinned-to-commit-sha

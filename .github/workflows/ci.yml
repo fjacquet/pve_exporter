@@ -1,0 +1,16 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    uses: fjacquet/ci/.github/workflows/go-ci.yml@v1 # nosemgrep: github-actions.security.third-party-action-not-pinned-to-commit-sha
+
+  security:
+    uses: fjacquet/ci/.github/workflows/go-security.yml@v1 # nosemgrep: github-actions.security.third-party-action-not-pinned-to-commit-sha

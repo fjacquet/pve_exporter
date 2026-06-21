@@ -1,0 +1,21 @@
+# Keeps SHA-pinned GitHub Actions current (Dependabot reads the `# vX.Y.Z` comment
+# next to each pinned SHA and bumps both), plus Go modules and the Dockerfile base.
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: build
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: build

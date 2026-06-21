@@ -1,0 +1,86 @@
+# Alerting rules for pve_exporter. Thresholds are tunable defaults.
+# NOTE: pve_cpu_usage_ratio and memory/disk gauges are already ratio/byte
+# values — aggregate with sum()/avg(), never rate(). Only *_bytes_total
+# counters use rate().
+groups:
+  - name: pve-health
+    rules:
+      - alert: PveTargetDown
+        expr: pve_up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Proxmox VE target unreachable ({{ $labels.cluster }})"
+          description: "pve_up == 0 for cluster={{ $labels.cluster }} id={{ $labels.id }}. The exporter cannot reach the Proxmox API."
+
+      - alert: PveNodeDown
+        expr: pve_up{type="node"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Proxmox VE node down ({{ $labels.cluster }} / {{ $labels.id }})"
+          description: "Node {{ $labels.id }} in cluster {{ $labels.cluster }} is not reachable."
+
+  - name: pve-resources
+    rules:
+      - alert: PveHighMemoryUsage
+        expr: pve_memory_usage_bytes / clamp_min(pve_memory_size_bytes, 1) > 0.9
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Proxmox VE high memory usage ({{ $labels.cluster }} / {{ $labels.id }})"
+          description: "{{ $labels.id }} in cluster {{ $labels.cluster }} memory usage is {{ $value | humanizePercentage }} (threshold 90%)."
+
+      - alert: PveHighStorageUsage
+        expr: pve_disk_usage_bytes / clamp_min(pve_disk_size_bytes, 1) > 0.9
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Proxmox VE high storage usage ({{ $labels.cluster }} / {{ $labels.id }})"
+          description: "{{ $labels.id }} in cluster {{ $labels.cluster }} storage usage is {{ $value | humanizePercentage }} (threshold 90%)."
+
+      - alert: PveHighNodeCpu
+        expr: pve_cpu_usage_ratio > 0.9
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Proxmox VE node CPU high ({{ $labels.cluster }} / {{ $labels.id }})"
+          description: "Node {{ $labels.id }} in cluster {{ $labels.cluster }} CPU usage is {{ $value | humanizePercentage }} (threshold 90%)."
+
+  - name: pve-subscription
+    rules:
+      - alert: PveSubscriptionNotActive
+        expr: pve_subscription_status{status="active"} == 0
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "Proxmox VE subscription not active ({{ $labels.cluster }})"
+          description: "Cluster {{ $labels.cluster }} id={{ $labels.id }} does not have an active subscription."
+
+  - name: pve-replication
+    rules:
+      - alert: PveReplicationFailed
+        expr: pve_replication_failed_syncs > 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Proxmox VE replication failures ({{ $labels.cluster }} / {{ $labels.id }})"
+          description: "{{ $value }} replication sync failure(s) on cluster={{ $labels.cluster }} id={{ $labels.id }}."
+
+  - name: pve-backup
+    rules:
+      - alert: PveGuestsNotBackedUp
+        expr: pve_not_backed_up_total > 0
+        for: 24h
+        labels:
+          severity: warning
+        annotations:
+          summary: "Proxmox VE guests without recent backup ({{ $labels.cluster }})"
+          description: "{{ $value }} guest(s) in cluster={{ $labels.cluster }} id={{ $labels.id }} have not been backed up recently."

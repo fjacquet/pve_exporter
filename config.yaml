@@ -1,0 +1,43 @@
+---
+# Sample configuration for pve_exporter.
+# Secret-bearing fields accept ${ENV_VAR} references, expanded at load time.
+# A .env file next to this config (or in the working directory) is auto-loaded.
+
+server:
+  host: "0.0.0.0"
+  port: "9221"
+  uri: "/metrics"
+  logName: "" # empty = stdout only
+
+collection:
+  interval: "30s"           # how often to poll each target
+  timeout: "25s"            # per-target per-cycle deadline
+  maxConcurrentTargets: 0   # 0 = unlimited
+
+# Optional, more expensive collectors. Omit a key (or set true) to enable.
+collectors:
+  onboot: true        # per-guest config call (most expensive)
+  replication: true
+  subscription: true
+  backupInfo: true
+  qdevice: true
+
+opentelemetry:
+  metrics:
+    enabled: false
+    endpoint: "localhost:4317"
+    insecure: true
+    interval: "10s"
+  tracing:
+    enabled: false
+    endpoint: "localhost:4317"
+    insecure: true
+    samplingRate: 0.1
+
+clusters:
+  - name: pve1
+    host: "${PVE1_HOST}"               # host or host:port (default port 8006)
+    tokenID: "${PVE1_TOKEN_ID}"        # user@realm!tokenname
+    tokenSecret: "${PVE1_TOKEN_SECRET}"
+    # tokenSecretFile: "/run/secrets/pve1_token"  # alternative to tokenSecret
+    insecureSkipVerify: true

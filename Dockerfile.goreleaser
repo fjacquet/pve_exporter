@@ -1,0 +1,22 @@
+# Minimal runtime image for GoReleaser — consumes the pre-built binary produced
+# by the `builds` step (CGO_ENABLED=0 static binary). No compilation here.
+FROM alpine:latest
+
+# Create the runtime user. Busybox adduser — no network call.
+RUN adduser -D -u 10001 pve && \
+    mkdir -p /var/log/pve_exporter && \
+    chown pve:pve /var/log/pve_exporter
+
+# Copy the CA bundle from the GoReleaser build environment so HTTPS works
+# without apk add (avoids the corporate MITM proxy chicken-and-egg problem).
+COPY ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+
+# Binary is injected by GoReleaser via the `dockers` extra_files / COPY directive.
+COPY pve_exporter /usr/bin/pve_exporter
+
+EXPOSE 9221
+
+USER pve
+
+ENTRYPOINT ["/usr/bin/pve_exporter"]
+CMD ["--config", "/etc/pve_exporter/config.yaml"]

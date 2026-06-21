@@ -1,0 +1,57 @@
+site_name: Proxmox VE Exporter
+site_description: Prometheus + OTLP exporter for Proxmox VE clusters
+site_url: https://fjacquet.github.io/pve_exporter/
+repo_url: https://github.com/fjacquet/pve_exporter
+repo_name: fjacquet/pve_exporter
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.highlight
+    - content.code.copy
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - attr_list
+
+nav:
+  - Home: index.md
+  - Metrics Reference: metrics.md
+  - Dashboards: dashboards.md
+  - Deployment:
+      - Docker: deployment/docker.md
+  - Architecture Decisions:
+      - Index: adr/index.md
+      - ADR 0001 — Supply chain: adr/0001-supply-chain.md
+      - ADR 0002 — Snapshot model: adr/0002-snapshot-model.md
+      - ADR 0003 — Client choice: adr/0003-client-choice.md
+      - ADR 0004 — Authentication: adr/0004-auth.md
+      - ADR 0005 — Naming & units: adr/0005-naming-units.md
+      - ADR 0006 — Label invariant: adr/0006-label-invariant.md
+
+extra:
+  version: v0.1.0

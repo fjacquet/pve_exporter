@@ -1,0 +1,32 @@
+# Binaries
+/bin/
+/dist/
+pve_exporter
+*.exe
+*.test
+*.out
+
+# Coverage
+coverage.txt
+coverage.html
+
+# Logs / traces
+*.log
+trace.log
+samples.txt
+
+# Local secrets / config
+.env
+*.local.yaml
+real.yaml
+
+# MkDocs build
+site/
+
+# Claude / editor / OS noise
+.claude.local.md
+.claude/settings.local.json
+.rtk/
+.idea/
+.vscode/
+.DS_Store

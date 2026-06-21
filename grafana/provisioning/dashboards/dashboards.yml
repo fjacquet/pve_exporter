@@ -1,0 +1,13 @@
+# Grafana dashboard provisioning for the docker-compose test stack.
+# Loads the bundled Proxmox VE dashboards from disk.
+apiVersion: 1
+
+providers:
+  - name: ProxmoxVE
+    type: file
+    disableDeletion: false
+    allowUiUpdates: true
+    updateIntervalSeconds: 30
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: true
