@@ -59,54 +59,30 @@ sboms:
     cmd: cyclonedx-gomod
     args: ["mod", "-licenses", "-json", "-output", "$document", "../"]
 
-# Docker image published to GHCR using the pre-built binary from the builds step.
-dockers:
-  - id: pve_exporter-amd64
-    ids: [pve_exporter]
-    goos: linux
-    goarch: amd64
-    image_templates:
-      - "ghcr.io/fjacquet/pve_exporter:{{ .Version }}-amd64"
-      - "ghcr.io/fjacquet/pve_exporter:latest-amd64"
+# Multi-arch Docker image published to GHCR. buildx lays out the cross-compiled
+# binary per platform as ${TARGETPLATFORM}/pve_exporter in the build context.
+dockers_v2:
+  - id: pve_exporter
+    ids:
+      - pve_exporter
     dockerfile: Dockerfile.goreleaser
-    build_flag_templates:
-      - "--platform=linux/amd64"
-      - "--label=org.opencontainers.image.title={{ .ProjectName }}"
-      - "--label=org.opencontainers.image.version={{ .Version }}"
-      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
-      - "--label=org.opencontainers.image.created={{ .Date }}"
-      - "--label=org.opencontainers.image.source=https://github.com/fjacquet/pve_exporter"
+    images:
+      - "ghcr.io/fjacquet/pve_exporter"
+    tags:
+      - "{{ .Version }}"
+      - "{{ .Major }}.{{ .Minor }}"
+      - "{{ if not .Prerelease }}latest{{ end }}"
+    platforms:
+      - linux/amd64
+      - linux/arm64
     extra_files:
-      - /etc/ssl/certs/ca-certificates.crt
-
-  - id: pve_exporter-arm64
-    ids: [pve_exporter]
-    goos: linux
-    goarch: arm64
-    image_templates:
-      - "ghcr.io/fjacquet/pve_exporter:{{ .Version }}-arm64"
-      - "ghcr.io/fjacquet/pve_exporter:latest-arm64"
-    dockerfile: Dockerfile.goreleaser
-    build_flag_templates:
-      - "--platform=linux/arm64"
-      - "--label=org.opencontainers.image.title={{ .ProjectName }}"
-      - "--label=org.opencontainers.image.version={{ .Version }}"
-      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
-      - "--label=org.opencontainers.image.created={{ .Date }}"
-      - "--label=org.opencontainers.image.source=https://github.com/fjacquet/pve_exporter"
-    extra_files:
-      - /etc/ssl/certs/ca-certificates.crt
-
-docker_manifests:
-  - name_template: "ghcr.io/fjacquet/pve_exporter:{{ .Version }}"
-    image_templates:
-      - "ghcr.io/fjacquet/pve_exporter:{{ .Version }}-amd64"
-      - "ghcr.io/fjacquet/pve_exporter:{{ .Version }}-arm64"
-
-  - name_template: "ghcr.io/fjacquet/pve_exporter:latest"
-    image_templates:
-      - "ghcr.io/fjacquet/pve_exporter:latest-amd64"
-      - "ghcr.io/fjacquet/pve_exporter:latest-arm64"
+      - config.yaml
+    labels:
+      org.opencontainers.image.title: "{{ .ProjectName }}"
+      org.opencontainers.image.version: "{{ .Version }}"
+      org.opencontainers.image.revision: "{{ .FullCommit }}"
+      org.opencontainers.image.source: "https://github.com/fjacquet/pve_exporter"
+    sbom: true
 
 # Homebrew cask (macOS only — casks are not supported on Linux). Published to a separate
 # tap repo, which requires a cross-repo PAT (HOMEBREW_TAP_GITHUB_TOKEN); the default
