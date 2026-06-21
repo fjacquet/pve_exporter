@@ -55,6 +55,7 @@ type CollectorToggles struct {
 	Subscription *bool `yaml:"subscription"`
 	BackupInfo   *bool `yaml:"backupInfo"`
 	QDevice      *bool `yaml:"qdevice"`
+	HAStatus     *bool `yaml:"haStatus"`
 }
 
 func boolOrTrue(p *bool) bool { return p == nil || *p }
@@ -73,6 +74,9 @@ func (t CollectorToggles) BackupInfoEnabled() bool { return boolOrTrue(t.BackupI
 
 // QDeviceEnabled reports whether the QDevice collector runs.
 func (t CollectorToggles) QDeviceEnabled() bool { return boolOrTrue(t.QDevice) }
+
+// HAStatusEnabled reports whether the HA status collector runs.
+func (t CollectorToggles) HAStatusEnabled() bool { return boolOrTrue(t.HAStatus) }
 
 // OTelExportConfig configures one OTLP signal (metrics or tracing).
 type OTelExportConfig struct {

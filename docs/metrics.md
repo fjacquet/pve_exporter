@@ -111,6 +111,35 @@ Monotonic counters. Use `rate()` / `increase()` over these.
 | `pve_qdevice_info`          | `cluster`, `id`, `model`, `host`, `algorithm`  | Quorum-device metadata.                           |
 | `pve_onboot_status`         | `cluster`, `id`, `node`, `type`                | Whether the guest is configured to start on boot. |
 
+## Exporter self-observability metrics
+
+These metrics describe the exporter's own collection behaviour per target.
+
+| Metric                              | Type    | Labels          | HELP                                                              |
+| ----------------------------------- | ------- | --------------- | ----------------------------------------------------------------- |
+| `pve_collection_duration_seconds`   | gauge   | `cluster`, `id` | Duration of the last collection cycle for a target, in seconds.  |
+| `pve_request_errors_total`          | counter | `cluster`, `id` | Total number of failed PVE API requests for a target.             |
+
+Both are emitted with `id="cluster/<name>"` so they are always cluster-scoped.
+`pve_request_errors_total` is a process-lifetime monotonic counter — it accumulates
+across collection cycles and increments on any transport error or non-200 HTTP response.
+
+## Node-level HA state
+
+`pve_ha_state` now includes **both** guest series (via `/cluster/resources`) and
+**node** series (via `/cluster/ha/status/current`).  Node series carry
+`id="node/<name>"` and emit the following states (exactly one active per node):
+
+| State         | Meaning                                        |
+| ------------- | ---------------------------------------------- |
+| `online`      | Node is online in the HA cluster.              |
+| `maintenance` | Node is in maintenance mode.                   |
+| `unknown`     | Node HA state cannot be determined.            |
+| `fence`       | Node is being fenced.                          |
+| `gone`        | Node has left the cluster permanently.         |
+
+The collector is gated by `collectors.haStatus` (default: enabled).
+
 ## Divergences from the Python community exporter
 
 This exporter deliberately differs from the Python community
@@ -123,9 +152,8 @@ in two places:
   monotonic `_total` counters are exposed. Migrate dashboards to `rate(..._total)`.
   See [ADR 0005](adr/0005-naming-units.md).
 
-!!! note "Known gaps (partial / best-effort)"
-    - **Node-level `pve_ha_state`** and the detailed **corosync qdevice** fields
-      (algorithm / tie_breaker / state) require the HA and corosync endpoints and
-      are only partial / best-effort.
-    - `pve_qdevice_info` exposes **model + host + algorithm only**; tie-breaker and
-      detailed qdevice state are not surfaced.
+!!! note "Known gaps"
+    - **`pve_qdevice_info` tie-breaker / state fields** are not surfaced. The Python
+      exporter exposes these from corosync quorum status, which has no stable PVE REST
+      API equivalent. See [ADR 0007](adr/0007-qdevice-state-gap.md) for the
+      investigation outcome and rationale for not fabricating these values.

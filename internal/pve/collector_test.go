@@ -37,6 +37,10 @@ func fakePVE(t *testing.T) *httptest.Server {
 		"/api2/json/nodes/proxmox/qemu":                   `{"data":[{"vmid":100}]}`,
 		"/api2/json/nodes/proxmox/lxc":                    `{"data":[]}`,
 		"/api2/json/nodes/proxmox/qemu/100/config":        `{"data":{"onboot":1}}`,
+		"/api2/json/cluster/ha/status/current": `{"data":[
+			{"id":"node/proxmox","type":"node","node":"proxmox","status":"online"},
+			{"id":"service:vm:100","type":"service","node":"proxmox","state":"started","sid":"vm:100"}
+		]}`,
 	}
 	mux := http.NewServeMux()
 	for path, body := range routes {
@@ -87,7 +91,7 @@ func TestCollectorSnapshot(t *testing.T) {
 		metricClusterInfo: true, metricVersionInfo: true, metricNetRxTotal: true,
 		metricHAState: true, metricLockState: true, metricQDeviceInfo: true,
 		metricNotBackedUpTotal: true, metricReplInfo: true, metricSubStatus: true,
-		metricOnboot: true,
+		metricOnboot: true, metricCollectionDuration: true, metricRequestErrors: true,
 	}
 	for name := range want {
 		if len(snap.SamplesFor(name)) == 0 {
@@ -111,18 +115,28 @@ func TestAbsentNotZero(t *testing.T) {
 
 func TestStateEnumStableLabels(t *testing.T) {
 	_, snap := collectFixture(t)
-	samples := snap.SamplesFor(metricHAState)
+	all := snap.SamplesFor(metricHAState)
+
+	// Count only guest HA samples (id prefix qemu/ or lxc/).
+	var guestSamples []Sample
+	for _, s := range all {
+		for _, l := range s.Labels {
+			if l.Name == "id" && (strings.HasPrefix(l.Value, "qemu/") || strings.HasPrefix(l.Value, "lxc/")) {
+				guestSamples = append(guestSamples, s)
+			}
+		}
+	}
 	var active int
-	for _, s := range samples {
+	for _, s := range guestSamples {
 		if s.Value == 1 {
 			active++
 		}
 	}
-	if len(samples) != len(haGuestStates) {
-		t.Errorf("ha_state should emit all %d states, got %d", len(haGuestStates), len(samples))
+	if len(guestSamples) != len(haGuestStates) {
+		t.Errorf("guest ha_state should emit all %d states, got %d", len(haGuestStates), len(guestSamples))
 	}
 	if active != 1 {
-		t.Errorf("exactly one ha_state should be active, got %d", active)
+		t.Errorf("exactly one guest ha_state should be active, got %d", active)
 	}
 }
 
@@ -150,6 +164,14 @@ func TestPrometheusExport(t *testing.T) {
 		}
 	} else {
 		t.Errorf("%s missing", metricNetRxTotal)
+	}
+	// pve_request_errors_total must be typed as a counter.
+	if f, ok := byName[metricRequestErrors]; ok {
+		if f.GetType() != dto.MetricType_COUNTER {
+			t.Errorf("%s should be a counter, got %s", metricRequestErrors, f.GetType())
+		}
+	} else {
+		t.Errorf("%s missing", metricRequestErrors)
 	}
 	// Every series carries the cluster identity label.
 	f := byName[metricUp]
@@ -194,4 +216,107 @@ func hasLabel(m *dto.Metric, name, value string) bool {
 		}
 	}
 	return false
+}
+
+func TestCollectionDurationMetric(t *testing.T) {
+	_, snap := collectFixture(t)
+	samples := snap.SamplesFor(metricCollectionDuration)
+	if len(samples) == 0 {
+		t.Fatalf("expected %s samples, got none", metricCollectionDuration)
+	}
+	for _, s := range samples {
+		if s.Value < 0 {
+			t.Errorf("%s value must be non-negative, got %f", metricCollectionDuration, s.Value)
+		}
+	}
+}
+
+func TestRequestErrorsMetric(t *testing.T) {
+	_, snap := collectFixture(t)
+	samples := snap.SamplesFor(metricRequestErrors)
+	if len(samples) == 0 {
+		t.Fatalf("expected %s samples, got none", metricRequestErrors)
+	}
+	// On the success path the id label must match the config name (stable target key).
+	wantID := "cluster/pve1"
+	for _, s := range samples {
+		for _, l := range s.Labels {
+			if l.Name == "id" && l.Value != wantID {
+				t.Errorf("%s: id label = %q, want %q", metricRequestErrors, l.Value, wantID)
+			}
+		}
+	}
+}
+
+func TestSelfMetricsStableID(t *testing.T) {
+	_, snap := collectFixture(t)
+	// The fixture target is named "pve1"; the PVE cluster name is "pvec" (from
+	// /cluster/status). Both self-observability metrics must carry the config
+	// name so series identity is stable across up/down flaps.
+	wantID := "cluster/pve1"
+	for _, metric := range []string{metricRequestErrors, metricCollectionDuration} {
+		samples := snap.SamplesFor(metric)
+		if len(samples) == 0 {
+			t.Fatalf("expected %s samples, got none", metric)
+		}
+		for _, s := range samples {
+			for _, l := range s.Labels {
+				if l.Name == "id" && l.Value != wantID {
+					t.Errorf("%s: id label = %q, want %q (must match config name, not resolved cluster name)", metric, l.Value, wantID)
+				}
+			}
+		}
+	}
+}
+
+func TestNodeHAState(t *testing.T) {
+	_, snap := collectFixture(t)
+	all := snap.SamplesFor(metricHAState)
+
+	var nodeSamples []Sample
+	for _, s := range all {
+		for _, l := range s.Labels {
+			if l.Name == "id" && strings.HasPrefix(l.Value, "node/") {
+				nodeSamples = append(nodeSamples, s)
+			}
+		}
+	}
+	if len(nodeSamples) != len(haNodeStates) {
+		t.Errorf("node ha_state should emit all %d states, got %d", len(haNodeStates), len(nodeSamples))
+	}
+	var active int
+	for _, s := range nodeSamples {
+		if s.Value == 1 {
+			active++
+		}
+	}
+	if active != 1 {
+		t.Errorf("exactly one node ha_state should be active, got %d", active)
+	}
+}
+
+func TestRequestErrorsIncrement(t *testing.T) {
+	// Point client at a server that always returns 500.
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	t.Cleanup(srv.Close)
+
+	host := strings.TrimPrefix(srv.URL, "https://")
+	cfg := models.ClusterConfig{
+		Name:               "err-test",
+		Host:               host,
+		TokenID:            "exporter@pam!t",
+		TokenSecret:        "secret",
+		InsecureSkipVerify: true,
+	}
+	client := NewClient(cfg, false)
+
+	before := client.RequestErrors()
+	_ = client.Get(context.Background(), "/api2/json/version", nil)
+	after := client.RequestErrors()
+
+	if after <= before {
+		t.Errorf("RequestErrors should have incremented: before=%d after=%d", before, after)
+	}
 }
