@@ -96,11 +96,12 @@ func (c *Collector) collectAll(ctx context.Context) *Snapshot {
 // collectTarget polls one target. A hard failure of the primary call yields a
 // degraded snapshot (pve_up=0) rather than failing the whole cycle.
 func (c *Collector) collectTarget(ctx context.Context, t Target) *TargetSnapshot {
+	start := time.Now()
 	ctx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
 
 	name := t.Cfg.Name
-	ts := &TargetSnapshot{Cluster: name, LastScrape: time.Now()}
+	ts := &TargetSnapshot{Cluster: name, LastScrape: start}
 	set := newSampleSet(name)
 
 	var resources []clusterResource
@@ -108,7 +109,10 @@ func (c *Collector) collectTarget(ctx context.Context, t Target) *TargetSnapshot
 		log.WithField("cluster", name).WithError(err).Error("failed to fetch /cluster/resources")
 		ts.Up = false
 		ts.ScrapeError = err.Error()
-		set.add(metricUp, 0, idLabel("cluster/"+name))
+		clusterID := "cluster/" + name
+		set.add(metricUp, 0, idLabel(clusterID))
+		set.add(metricCollectionDuration, time.Since(start).Seconds(), idLabel(clusterID))
+		set.add(metricRequestErrors, float64(t.Client.RequestErrors()), idLabel(clusterID))
 		ts.Samples = set.out
 		return ts
 	}
@@ -150,9 +154,15 @@ func (c *Collector) collectTarget(ctx context.Context, t Target) *TargetSnapshot
 		}
 	}
 
+	if c.toggles.HAStatusEnabled() {
+		collectHAStatus(ctx, t.Client, set)
+	}
+
 	c.collectNodes(ctx, t, nodeNames(resources), set)
 
 	set.add(metricUp, 1, idLabel(clusterID))
+	set.add(metricCollectionDuration, time.Since(start).Seconds(), idLabel(clusterID))
+	set.add(metricRequestErrors, float64(t.Client.RequestErrors()), idLabel(clusterID))
 	ts.Up = true
 	ts.Samples = set.out
 	return ts

@@ -100,3 +100,14 @@ type replicationStatus struct {
 	NextSync  FlexFloat `json:"next_sync"`
 	FailCount FlexFloat `json:"fail_count"`
 }
+
+// haStatusEntry is one row of GET /cluster/ha/status/current.
+// Fields vary by entry type: node entries use Status; service entries use State/SID.
+type haStatusEntry struct {
+	ID     string     `json:"id"`
+	Type   string     `json:"type"` // "quorum", "lrm", "node", "service"
+	Node   string     `json:"node"`
+	Status string     `json:"status"` // node/lrm status string
+	State  string     `json:"state"`  // service state
+	SID    FlexString `json:"sid"`
+}
