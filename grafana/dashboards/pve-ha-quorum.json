@@ -434,13 +434,13 @@
               "job 1": true,
               "job 2": true,
               "instance 1": true,
-              "instance 2": true
+              "instance 2": true,
+              "Value #A": true
             },
             "renameByName": {
               "name": "name",
               "nodeid": "nodeid",
               "level": "level",
-              "Value #A": "online",
               "Value #B": "online"
             },
             "indexByName": {

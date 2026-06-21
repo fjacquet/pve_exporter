@@ -354,7 +354,7 @@
       "datasource": { "type": "prometheus", "uid": "${datasource}" },
       "gridPos": { "x": 0, "y": 33, "w": 24, "h": 8 },
       "options": {
-        "sortBy": [{ "displayName": "Days Until Due", "desc": false }],
+        "sortBy": [{ "displayName": "Seconds Until Due", "desc": false }],
         "footer": { "show": false }
       },
       "fieldConfig": {

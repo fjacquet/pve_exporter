@@ -347,7 +347,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${datasource}" },
-          "expr": "pve_version_info{cluster=~\"$cluster\"} * on(cluster) group_left(release) pve_version_info{cluster=~\"$cluster\"}",
+          "expr": "pve_version_info{cluster=~\"$cluster\"}",
           "legendFormat": "{{release}}",
           "refId": "A",
           "instant": true

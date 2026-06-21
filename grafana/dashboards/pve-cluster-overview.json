@@ -385,7 +385,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${datasource}" },
-          "expr": "avg by (id)(pve_cpu_usage_ratio{id=~\"node/.*\",cluster=~\"$cluster\"} * on(cluster,id) group_left(name) pve_node_info)",
+          "expr": "avg by (id, name)(pve_cpu_usage_ratio{id=~\"node/.*\",cluster=~\"$cluster\"} * on(cluster,id) group_left(name) pve_node_info)",
           "legendFormat": "{{name}}",
           "refId": "A"
         }
@@ -529,13 +529,35 @@
         ]
       },
       "transformations": [
-        { "id": "labelsToFields", "options": { "valueLabel": "name" } },
-        { "id": "merge", "options": {} },
+        {
+          "id": "joinByField",
+          "options": { "byField": "id", "mode": "outer" }
+        },
         {
           "id": "organize",
           "options": {
+            "excludeByName": {
+              "Time": true,
+              "Time 1": true,
+              "Time 2": true,
+              "Time 3": true,
+              "Time 4": true,
+              "Time 5": true,
+              "cluster": true,
+              "cluster 1": true,
+              "cluster 2": true,
+              "cluster 3": true,
+              "cluster 4": true,
+              "cluster 5": true,
+              "name 2": true,
+              "name 3": true,
+              "name 4": true,
+              "name 5": true,
+              "Value #info": true
+            },
             "renameByName": {
               "name": "name",
+              "name 1": "name",
               "Value #A": "status",
               "Value #B": "cpu%",
               "Value #C": "mem%",
@@ -559,6 +581,14 @@
         }
       ],
       "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "expr": "pve_node_info{cluster=~\"$cluster\"}",
+          "legendFormat": "{{name}}",
+          "refId": "info",
+          "format": "table",
+          "instant": true
+        },
         {
           "datasource": { "type": "prometheus", "uid": "${datasource}" },
           "expr": "pve_up{id=~\"node/.*\",cluster=~\"$cluster\"} * on(cluster,id) group_left(name) pve_node_info",
@@ -614,14 +644,30 @@
         ]
       },
       "transformations": [
-        { "id": "labelsToFields", "options": { "valueLabel": "name" } },
-        { "id": "merge", "options": {} },
+        {
+          "id": "joinByField",
+          "options": { "byField": "id", "mode": "outer" }
+        },
         {
           "id": "organize",
           "options": {
+            "excludeByName": {
+              "Time": true,
+              "Time 1": true,
+              "Time 2": true,
+              "cluster": true,
+              "cluster 1": true,
+              "cluster 2": true,
+              "node 2": true,
+              "name 2": true,
+              "tags 2": true,
+              "Value #info": true
+            },
             "renameByName": {
               "name": "name",
+              "name 1": "name",
               "node": "node",
+              "node 1": "node",
               "Value #A": "cpu%"
             },
             "indexByName": {
@@ -640,6 +686,14 @@
         }
       ],
       "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "expr": "pve_guest_info{cluster=~\"$cluster\"}",
+          "legendFormat": "{{name}}",
+          "refId": "info",
+          "format": "table",
+          "instant": true
+        },
         {
           "datasource": { "type": "prometheus", "uid": "${datasource}" },
           "expr": "topk(10, pve_cpu_usage_ratio{id=~\"(qemu|lxc)/.*\",cluster=~\"$cluster\"} * on(cluster,id) group_left(name,node) pve_guest_info)",
