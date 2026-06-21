@@ -4,6 +4,11 @@ site_url: https://fjacquet.github.io/pve_exporter/
 repo_url: https://github.com/fjacquet/pve_exporter
 repo_name: fjacquet/pve_exporter
 
+# Internal planning artifacts (brainstorming specs / implementation plans) live
+# under docs/ for co-location but must not be published to the public site.
+exclude_docs: |
+  superpowers/
+
 theme:
   name: material
   palette:
