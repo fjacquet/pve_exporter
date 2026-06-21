@@ -10,13 +10,13 @@ server:
   logName: "" # empty = stdout only
 
 collection:
-  interval: "30s"           # how often to poll each target
-  timeout: "25s"            # per-target per-cycle deadline
-  maxConcurrentTargets: 0   # 0 = unlimited
+  interval: "30s" # how often to poll each target
+  timeout: "25s" # per-target per-cycle deadline
+  maxConcurrentTargets: 0 # 0 = unlimited
 
 # Optional, more expensive collectors. Omit a key (or set true) to enable.
 collectors:
-  onboot: true        # per-guest config call (most expensive)
+  onboot: true # per-guest config call (most expensive)
   replication: true
   subscription: true
   backupInfo: true
@@ -36,8 +36,8 @@ opentelemetry:
 
 clusters:
   - name: pve1
-    host: "${PVE1_HOST}"               # host or host:port (default port 8006)
-    tokenID: "${PVE1_TOKEN_ID}"        # user@realm!tokenname
+    host: "${PVE1_HOST}" # host or host:port (default port 8006)
+    tokenID: "${PVE1_TOKEN_ID}" # user@realm!tokenname
     tokenSecret: "${PVE1_TOKEN_SECRET}"
     # tokenSecretFile: "/run/secrets/pve1_token"  # alternative to tokenSecret
     insecureSkipVerify: true
