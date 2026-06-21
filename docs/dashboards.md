@@ -38,7 +38,7 @@ datasource — no manual import step required.
 
 The dashboards form a three-level hierarchy.
 
-```
+```text
 Cluster Overview
     ├── Nodes table         → Node Detail    (var-node, var-cluster)
     └── Top Guests table    → Guest Detail   (var-guest, var-cluster)
@@ -50,7 +50,7 @@ Cluster Overview
 Every drilldown link passes the current `$cluster` variable plus the target
 name as `var-node` or `var-guest`. Example URL produced by the Nodes table row:
 
-```
+```text
 /d/pve-node?var-node=${__data.fields.name}&var-cluster=${cluster}
 ```
 
@@ -194,7 +194,7 @@ The landing page for a cluster. Use the `cluster` variable to select a target.
 | Panel | PromQL summary |
 |-------|----------------|
 | Nodes Online | `sum(pve_up{id=~"node/.*"})` |
-| Guests Running | `sum(pve_up{id=~"(qemu|lxc)/.*"})` |
+| Guests Running | `sum(pve_up{id=~"(qemu\|lxc)/.*"})` |
 | Storages Available | `sum(pve_up{id=~"storage/.*"})` |
 | Replication Failures | `sum(pve_replication_failed_syncs)` |
 | Guests Not Backed Up | `sum(pve_not_backed_up_total)` |
@@ -377,7 +377,7 @@ appear as empty or absent in the dashboards:
 ## Provisioning
 
 Dashboards are provisioned automatically from `grafana/dashboards/` via the
-`grafana/provisioning/dashboards/pve.yaml` provider configuration. No manual
+`grafana/provisioning/dashboards/dashboards.yml` provider configuration. No manual
 import is required when using the Compose stack.
 
 To add or update a dashboard, place or replace the JSON file in

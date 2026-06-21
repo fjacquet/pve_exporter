@@ -145,7 +145,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${datasource}" },
-          "expr": "sum(pve_replication_failed_syncs{cluster=~\"$cluster\"})",
+          "expr": "sum(pve_replication_failed_syncs{cluster=~\"$cluster\"}) or vector(0)",
           "legendFormat": "Failed Syncs",
           "refId": "A"
         }
