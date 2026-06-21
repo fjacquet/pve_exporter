@@ -45,6 +45,8 @@ markdown_extensions:
 
 nav:
   - Home: index.md
+  - Quickstart: quickstart.md
+  - CLI & Validation: cli.md
   - Metrics Reference: metrics.md
   - Dashboards: dashboards.md
   - Deployment:
@@ -59,4 +61,4 @@ nav:
       - ADR 0006 — Label invariant: adr/0006-label-invariant.md
 
 extra:
-  version: v0.1.0
+  version: v0.1.1
