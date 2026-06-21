@@ -93,10 +93,13 @@ func (c *Client) RequestErrors() int64 { return c.requestErrors.Load() }
 func (c *Client) Get(ctx context.Context, path string, out interface{}) error {
 	resp, err := c.http.R().SetContext(ctx).Get(path)
 	if err != nil {
+		// resty has already exhausted its retry budget; this counts one logical
+		// call failure, not the number of individual wire attempts.
 		c.requestErrors.Add(1)
 		return fmt.Errorf("GET %s: %w", path, err)
 	}
 	if resp.StatusCode() != http.StatusOK {
+		// Same as above: counted once per logical call after all retries.
 		c.requestErrors.Add(1)
 		return fmt.Errorf("GET %s: unexpected status %d", path, resp.StatusCode())
 	}

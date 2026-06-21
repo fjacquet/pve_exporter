@@ -161,8 +161,12 @@ func (c *Collector) collectTarget(ctx context.Context, t Target) *TargetSnapshot
 	c.collectNodes(ctx, t, nodeNames(resources), set)
 
 	set.add(metricUp, 1, idLabel(clusterID))
-	set.add(metricCollectionDuration, time.Since(start).Seconds(), idLabel(clusterID))
-	set.add(metricRequestErrors, float64(t.Client.RequestErrors()), idLabel(clusterID))
+	// Self-observability metrics use the stable config name, not the resolved
+	// cluster name, so the series identity is consistent whether the target is
+	// up or down (mirrors the degraded-path label above).
+	selfID := "cluster/" + name
+	set.add(metricCollectionDuration, time.Since(start).Seconds(), idLabel(selfID))
+	set.add(metricRequestErrors, float64(t.Client.RequestErrors()), idLabel(selfID))
 	ts.Up = true
 	ts.Samples = set.out
 	return ts

@@ -165,6 +165,14 @@ func TestPrometheusExport(t *testing.T) {
 	} else {
 		t.Errorf("%s missing", metricNetRxTotal)
 	}
+	// pve_request_errors_total must be typed as a counter.
+	if f, ok := byName[metricRequestErrors]; ok {
+		if f.GetType() != dto.MetricType_COUNTER {
+			t.Errorf("%s should be a counter, got %s", metricRequestErrors, f.GetType())
+		}
+	} else {
+		t.Errorf("%s missing", metricRequestErrors)
+	}
 	// Every series carries the cluster identity label.
 	f := byName[metricUp]
 	for _, m := range f.Metric {
@@ -228,6 +236,36 @@ func TestRequestErrorsMetric(t *testing.T) {
 	samples := snap.SamplesFor(metricRequestErrors)
 	if len(samples) == 0 {
 		t.Fatalf("expected %s samples, got none", metricRequestErrors)
+	}
+	// On the success path the id label must match the config name (stable target key).
+	wantID := "cluster/pve1"
+	for _, s := range samples {
+		for _, l := range s.Labels {
+			if l.Name == "id" && l.Value != wantID {
+				t.Errorf("%s: id label = %q, want %q", metricRequestErrors, l.Value, wantID)
+			}
+		}
+	}
+}
+
+func TestSelfMetricsStableID(t *testing.T) {
+	_, snap := collectFixture(t)
+	// The fixture target is named "pve1"; the PVE cluster name is "pvec" (from
+	// /cluster/status). Both self-observability metrics must carry the config
+	// name so series identity is stable across up/down flaps.
+	wantID := "cluster/pve1"
+	for _, metric := range []string{metricRequestErrors, metricCollectionDuration} {
+		samples := snap.SamplesFor(metric)
+		if len(samples) == 0 {
+			t.Fatalf("expected %s samples, got none", metric)
+		}
+		for _, s := range samples {
+			for _, l := range s.Labels {
+				if l.Name == "id" && l.Value != wantID {
+					t.Errorf("%s: id label = %q, want %q (must match config name, not resolved cluster name)", metric, l.Value, wantID)
+				}
+			}
+		}
 	}
 }
 

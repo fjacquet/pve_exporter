@@ -26,6 +26,8 @@ func collectHAStatus(ctx context.Context, c Doer, set *sampleSet) {
 		return
 	}
 	for _, e := range entries {
+		// Only "node" entries carry node HA state; lrm/service/quorum entries
+		// represent other HA subsystems and are not node-level state.
 		if e.Type != "node" || e.Node == "" {
 			continue
 		}
