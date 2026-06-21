@@ -43,8 +43,8 @@ services:
     volumes:
       # Datasource + dashboard providers (auto-provisioned on startup).
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
-      # Bundled PVE dashboard.
-      - ./grafana/pve-overview.json:/var/lib/grafana/dashboards/pve-overview.json:ro
+      # Dashboard JSON files (one per dashboard in the suite).
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
     depends_on:
       - prometheus
     restart: unless-stopped

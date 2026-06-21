@@ -8,6 +8,7 @@ providers:
     disableDeletion: false
     allowUiUpdates: true
     updateIntervalSeconds: 30
+    folder: "Proxmox PVE"
     options:
       path: /var/lib/grafana/dashboards
-      foldersFromFilesStructure: true
+      foldersFromFilesStructure: false
