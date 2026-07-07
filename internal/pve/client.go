@@ -25,6 +25,9 @@ const (
 type Doer interface {
 	// Get fetches path and unmarshals the response "data" field into out.
 	Get(ctx context.Context, path string, out interface{}) error
+	// GetOptional is Get for best-effort endpoints; a 403/404 response is not
+	// counted toward RequestErrors (see GetOptional on *Client).
+	GetOptional(ctx context.Context, path string, out interface{}) error
 	// Name returns the configured target (cluster) name.
 	Name() string
 	// RequestErrors returns the cumulative count of failed PVE API requests.
@@ -89,19 +92,39 @@ func (c *Client) Name() string { return c.name }
 // RequestErrors returns the cumulative count of failed PVE API requests.
 func (c *Client) RequestErrors() int64 { return c.requestErrors.Load() }
 
-// Get fetches path and unmarshals the "data" field into out.
+// Get fetches path and unmarshals the "data" field into out. Any transport
+// error or non-200 response counts toward RequestErrors.
 func (c *Client) Get(ctx context.Context, path string, out interface{}) error {
+	return c.get(ctx, path, out, false)
+}
+
+// GetOptional is Get for best-effort endpoints whose absence is not an error.
+// A 403 (permission denied) or 404 (feature absent) is expected on restricted
+// tokens or feature-less clusters and is NOT counted toward RequestErrors; all
+// other failures (transport, 5xx, other 4xx) still count. The error is still
+// returned, so callers keep their existing "log debug and continue" handling.
+func (c *Client) GetOptional(ctx context.Context, path string, out interface{}) error {
+	return c.get(ctx, path, out, true)
+}
+
+// get is the shared implementation for Get and GetOptional. When optional is
+// true, an expected-absence status (403/404) does not increment RequestErrors.
+func (c *Client) get(ctx context.Context, path string, out interface{}, optional bool) error {
 	resp, err := c.http.R().SetContext(ctx).Get(path)
 	if err != nil {
 		// resty has already exhausted its retry budget; this counts one logical
-		// call failure, not the number of individual wire attempts.
+		// call failure, not the number of individual wire attempts. A transport
+		// failure always counts, even for optional endpoints.
 		c.requestErrors.Add(1)
 		return fmt.Errorf("GET %s: %w", path, err)
 	}
-	if resp.StatusCode() != http.StatusOK {
-		// Same as above: counted once per logical call after all retries.
-		c.requestErrors.Add(1)
-		return fmt.Errorf("GET %s: unexpected status %d", path, resp.StatusCode())
+	if code := resp.StatusCode(); code != http.StatusOK {
+		// Counted once per logical call after all retries, unless this is an
+		// optional endpoint returning an expected-absence status (403/404).
+		if !(optional && isExpectedAbsence(code)) {
+			c.requestErrors.Add(1)
+		}
+		return fmt.Errorf("GET %s: unexpected status %d", path, code)
 	}
 	var env envelope
 	if err := json.Unmarshal(resp.Body(), &env); err != nil {
@@ -114,4 +137,11 @@ func (c *Client) Get(ctx context.Context, path string, out interface{}) error {
 		return fmt.Errorf("GET %s: decode data: %w", path, err)
 	}
 	return nil
+}
+
+// isExpectedAbsence reports whether an HTTP status represents an optional
+// endpoint that is unavailable by permission (403) or absence (404), as opposed
+// to a genuine API failure that should count toward RequestErrors.
+func isExpectedAbsence(code int) bool {
+	return code == http.StatusForbidden || code == http.StatusNotFound
 }
