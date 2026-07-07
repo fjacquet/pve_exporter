@@ -21,7 +21,7 @@ var haNodeStatusMap = map[string]string{
 // Returns silently when the endpoint is absent or returns no node entries.
 func collectHAStatus(ctx context.Context, c Doer, set *sampleSet) {
 	var entries []haStatusEntry
-	if err := c.Get(ctx, "/cluster/ha/status/current", &entries); err != nil {
+	if err := c.GetOptional(ctx, "/cluster/ha/status/current", &entries); err != nil {
 		log.WithField("cluster", c.Name()).WithError(err).Debug("ha/status/current not available")
 		return
 	}

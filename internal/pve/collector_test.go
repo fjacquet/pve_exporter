@@ -16,7 +16,9 @@ import (
 )
 
 // fakePVE returns canned responses for the endpoints the collector calls.
-func fakePVE(t *testing.T) *httptest.Server {
+// statusOverrides forces the given status code for a path instead of the
+// canned body; pass nil for the default all-success behavior.
+func fakePVE(t *testing.T, statusOverrides map[string]int) *httptest.Server {
 	t.Helper()
 	routes := map[string]string{
 		"/api2/json/cluster/resources": `{"data":[
@@ -44,8 +46,12 @@ func fakePVE(t *testing.T) *httptest.Server {
 	}
 	mux := http.NewServeMux()
 	for path, body := range routes {
-		body := body
+		path, body := path, body
 		mux.HandleFunc(path, func(w http.ResponseWriter, _ *http.Request) {
+			if code, ok := statusOverrides[path]; ok {
+				w.WriteHeader(code)
+				return
+			}
 			w.Header().Set("Content-Type", "application/json")
 			_, _ = w.Write([]byte(body))
 		})
@@ -68,7 +74,7 @@ func testTarget(t *testing.T, srv *httptest.Server) Target {
 
 func collectFixture(t *testing.T) (*SnapshotStore, *Snapshot) {
 	t.Helper()
-	srv := fakePVE(t)
+	srv := fakePVE(t, nil)
 	t.Cleanup(srv.Close)
 	store := NewSnapshotStore()
 	c := NewCollector([]Target{testTarget(t, srv)}, store, time.Minute, 10*time.Second, models.CollectorToggles{}, 0)
@@ -318,5 +324,32 @@ func TestRequestErrorsIncrement(t *testing.T) {
 
 	if after <= before {
 		t.Errorf("RequestErrors should have incremented: before=%d after=%d", before, after)
+	}
+}
+
+func TestOptionalEndpoint403NotCounted(t *testing.T) {
+	// qdevice is an optional endpoint; a 403 there must neither emit a series
+	// (absent-not-zero) nor inflate pve_request_errors_total.
+	srv := fakePVE(t, map[string]int{
+		"/api2/json/cluster/config/qdevice": http.StatusForbidden,
+	})
+	t.Cleanup(srv.Close)
+
+	store := NewSnapshotStore()
+	c := NewCollector([]Target{testTarget(t, srv)}, store, time.Minute, 10*time.Second, models.CollectorToggles{}, 0)
+	snap := c.CollectOnce(context.Background())
+
+	if n := len(snap.SamplesFor(metricQDeviceInfo)); n != 0 {
+		t.Errorf("expected no %s samples when qdevice returns 403, got %d", metricQDeviceInfo, n)
+	}
+
+	samples := snap.SamplesFor(metricRequestErrors)
+	if len(samples) == 0 {
+		t.Fatalf("expected %s samples, got none", metricRequestErrors)
+	}
+	for _, s := range samples {
+		if s.Value != 0 {
+			t.Errorf("%s = %v, want 0 (403 on an optional endpoint must not count)", metricRequestErrors, s.Value)
+		}
 	}
 }
