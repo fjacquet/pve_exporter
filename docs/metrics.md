@@ -118,11 +118,16 @@ These metrics describe the exporter's own collection behaviour per target.
 | Metric                              | Type    | Labels          | HELP                                                              |
 | ----------------------------------- | ------- | --------------- | ----------------------------------------------------------------- |
 | `pve_collection_duration_seconds`   | gauge   | `cluster`, `id` | Duration of the last collection cycle for a target, in seconds.  |
-| `pve_request_errors_total`          | counter | `cluster`, `id` | Total number of failed PVE API requests for a target.             |
+| `pve_request_errors_total`          | counter | `cluster`, `id` | Total failed PVE API requests for a target (excludes 403/404 on optional endpoints). |
 
 Both are emitted with `id="cluster/<name>"` so they are always cluster-scoped.
 `pve_request_errors_total` is a process-lifetime monotonic counter — it accumulates
-across collection cycles and increments on any transport error or non-200 HTTP response.
+across collection cycles and increments on any transport error or non-200 HTTP response
+on a **required** endpoint (`/cluster/resources`, `/cluster/status`, `/version`).
+Expected-absence responses — 403 (permission denied) or 404 (feature absent) — on the
+optional endpoints (qdevice, backup-info, HA status, replication, subscription, onboot)
+are **not** counted, so a deliberately-restricted token does not inflate the counter;
+genuine 5xx or transport failures on those endpoints still count (ADR-0008).
 
 ## Node-level HA state
 

@@ -40,7 +40,7 @@ var metricHelp = map[string]string{
 	metricReplNextSync:       "Proxmox vm replication next_sync",
 	metricReplFailed:         "Proxmox vm replication fail_count",
 	metricCollectionDuration: "Duration of the last collection cycle for a target, in seconds.",
-	metricRequestErrors:      "Total number of failed PVE API requests for a target.",
+	metricRequestErrors:      "Total failed PVE API requests for a target (excludes 403/404 on optional endpoints).",
 }
 
 // helpFor returns the HELP text for a metric name (falling back to the name).

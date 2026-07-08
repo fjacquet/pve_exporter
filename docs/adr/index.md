@@ -11,3 +11,5 @@ follows the **Status / Context / Decision / Consequences** structure.
 | [0004](0004-auth.md) | PVEAPIToken static-header authentication | Accepted |
 | [0005](0005-naming-units.md) | Metric naming & units | Accepted |
 | [0006](0006-label-invariant.md) | Label-set invariant per metric name | Accepted |
+| [0007](0007-qdevice-state-gap.md) | QDevice tie-breaker/state gap | Accepted |
+| [0008](0008-request-error-counting.md) | Request-error counting on optional endpoints | Accepted |

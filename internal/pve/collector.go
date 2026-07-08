@@ -138,7 +138,7 @@ func (c *Collector) collectTarget(ctx context.Context, t Target) *TargetSnapshot
 
 	if c.toggles.QDeviceEnabled() {
 		var q qdeviceConfig
-		if err := t.Client.Get(ctx, "/cluster/config/qdevice", &q); err != nil {
+		if err := t.Client.GetOptional(ctx, "/cluster/config/qdevice", &q); err != nil {
 			log.WithField("cluster", name).WithError(err).Debug("qdevice not available")
 		} else {
 			collectQDevice(set, clusterID, q)
@@ -147,7 +147,7 @@ func (c *Collector) collectTarget(ctx context.Context, t Target) *TargetSnapshot
 
 	if c.toggles.BackupInfoEnabled() {
 		var guests []notBackedUpGuest
-		if err := t.Client.Get(ctx, "/cluster/backup-info/not-backed-up", &guests); err != nil {
+		if err := t.Client.GetOptional(ctx, "/cluster/backup-info/not-backed-up", &guests); err != nil {
 			log.WithField("cluster", name).WithError(err).Debug("backup-info not available")
 		} else {
 			collectNotBackedUp(set, clusterID, guests)

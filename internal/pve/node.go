@@ -8,7 +8,7 @@ import (
 // collectReplication emits replication job info and status for one node.
 func collectReplication(ctx context.Context, c Doer, node string, s *sampleSet) error {
 	var jobs []replicationJob
-	if err := c.Get(ctx, fmt.Sprintf("/nodes/%s/replication", node), &jobs); err != nil {
+	if err := c.GetOptional(ctx, fmt.Sprintf("/nodes/%s/replication", node), &jobs); err != nil {
 		return err
 	}
 	for _, j := range jobs {
@@ -25,7 +25,7 @@ func collectReplication(ctx context.Context, c Doer, node string, s *sampleSet) 
 		)
 
 		var st replicationStatus
-		if err := c.Get(ctx, fmt.Sprintf("/nodes/%s/replication/%s/status", node, j.ID), &st); err != nil {
+		if err := c.GetOptional(ctx, fmt.Sprintf("/nodes/%s/replication/%s/status", node, j.ID), &st); err != nil {
 			continue // status is best-effort per job
 		}
 		id := idLabel(j.ID)
@@ -41,7 +41,7 @@ func collectReplication(ctx context.Context, c Doer, node string, s *sampleSet) 
 // collectSubscription emits subscription info/status/due for one node.
 func collectSubscription(ctx context.Context, c Doer, node string, s *sampleSet) error {
 	var sub subscriptionInfo
-	if err := c.Get(ctx, fmt.Sprintf("/nodes/%s/subscription", node), &sub); err != nil {
+	if err := c.GetOptional(ctx, fmt.Sprintf("/nodes/%s/subscription", node), &sub); err != nil {
 		return err
 	}
 	id := idLabel("node/" + node)
@@ -62,7 +62,7 @@ func collectSubscription(ctx context.Context, c Doer, node string, s *sampleSet)
 func collectOnboot(ctx context.Context, c Doer, node string, s *sampleSet) error {
 	for _, typ := range []string{"qemu", "lxc"} {
 		var guests []guestRef
-		if err := c.Get(ctx, fmt.Sprintf("/nodes/%s/%s", node, typ), &guests); err != nil {
+		if err := c.GetOptional(ctx, fmt.Sprintf("/nodes/%s/%s", node, typ), &guests); err != nil {
 			return err
 		}
 		for _, g := range guests {
@@ -71,7 +71,7 @@ func collectOnboot(ctx context.Context, c Doer, node string, s *sampleSet) error
 			}
 			vmid := formatInt(g.VMID.Value)
 			var cfg guestConfig
-			if err := c.Get(ctx, fmt.Sprintf("/nodes/%s/%s/%s/config", node, typ, vmid), &cfg); err != nil {
+			if err := c.GetOptional(ctx, fmt.Sprintf("/nodes/%s/%s/%s/config", node, typ, vmid), &cfg); err != nil {
 				continue
 			}
 			onboot := 0.0
