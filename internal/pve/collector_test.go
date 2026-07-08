@@ -15,6 +15,21 @@ import (
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 )
 
+func boolPtr(b bool) *bool { return &b }
+
+// allOptionalToggles enables every optional collector explicitly so these tests
+// cannot silently go vacuous if a default ever flips.
+func allOptionalToggles() models.CollectorToggles {
+	return models.CollectorToggles{
+		Onboot:       boolPtr(true),
+		Replication:  boolPtr(true),
+		Subscription: boolPtr(true),
+		BackupInfo:   boolPtr(true),
+		QDevice:      boolPtr(true),
+		HAStatus:     boolPtr(true),
+	}
+}
+
 // fakePVE returns canned responses for the endpoints the collector calls.
 // statusOverrides forces the given status code for a path instead of the
 // canned body; pass nil for the default all-success behavior.
@@ -336,7 +351,7 @@ func TestOptionalEndpoint403NotCounted(t *testing.T) {
 	t.Cleanup(srv.Close)
 
 	store := NewSnapshotStore()
-	c := NewCollector([]Target{testTarget(t, srv)}, store, time.Minute, 10*time.Second, models.CollectorToggles{}, 0)
+	c := NewCollector([]Target{testTarget(t, srv)}, store, time.Minute, 10*time.Second, allOptionalToggles(), 0)
 	snap := c.CollectOnce(context.Background())
 
 	if n := len(snap.SamplesFor(metricQDeviceInfo)); n != 0 {
@@ -351,5 +366,40 @@ func TestOptionalEndpoint403NotCounted(t *testing.T) {
 		if s.Value != 0 {
 			t.Errorf("%s = %v, want 0 (403 on an optional endpoint must not count)", metricRequestErrors, s.Value)
 		}
+	}
+}
+
+// TestOptionalEndpoints403NotCounted forces each optional endpoint to 403 in
+// turn and asserts pve_request_errors_total stays 0. One entry per optional
+// call site, so a future revert of any one site back to Get is caught here.
+func TestOptionalEndpoints403NotCounted(t *testing.T) {
+	optionalPaths := []string{
+		"/api2/json/cluster/config/qdevice",
+		"/api2/json/cluster/backup-info/not-backed-up",
+		"/api2/json/cluster/ha/status/current",
+		"/api2/json/nodes/proxmox/replication",
+		"/api2/json/nodes/proxmox/replication/1-0/status",
+		"/api2/json/nodes/proxmox/subscription",
+		"/api2/json/nodes/proxmox/qemu",
+		"/api2/json/nodes/proxmox/qemu/100/config",
+	}
+	for _, path := range optionalPaths {
+		t.Run(path, func(t *testing.T) {
+			srv := fakePVE(t, map[string]int{path: http.StatusForbidden})
+			t.Cleanup(srv.Close)
+			store := NewSnapshotStore()
+			c := NewCollector([]Target{testTarget(t, srv)}, store, time.Minute, 10*time.Second, allOptionalToggles(), 0)
+			snap := c.CollectOnce(context.Background())
+
+			samples := snap.SamplesFor(metricRequestErrors)
+			if len(samples) == 0 {
+				t.Fatalf("expected %s samples, got none", metricRequestErrors)
+			}
+			for _, s := range samples {
+				if s.Value != 0 {
+					t.Errorf("403 on optional %s: %s = %v, want 0", path, metricRequestErrors, s.Value)
+				}
+			}
+		})
 	}
 }
