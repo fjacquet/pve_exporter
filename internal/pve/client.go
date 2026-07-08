@@ -121,7 +121,8 @@ func (c *Client) get(ctx context.Context, path string, out interface{}, optional
 	if code := resp.StatusCode(); code != http.StatusOK {
 		// Counted once per logical call after all retries, unless this is an
 		// optional endpoint returning an expected-absence status (403/404).
-		if !(optional && isExpectedAbsence(code)) {
+		expectedAbsence := optional && isExpectedAbsence(code)
+		if !expectedAbsence {
 			c.requestErrors.Add(1)
 		}
 		return fmt.Errorf("GET %s: unexpected status %d", path, code)

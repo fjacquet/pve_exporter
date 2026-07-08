@@ -369,10 +369,21 @@ func TestOptionalEndpoint403NotCounted(t *testing.T) {
 	}
 }
 
-// TestOptionalEndpoints403NotCounted forces each optional endpoint to 403 in
-// turn and asserts pve_request_errors_total stays 0. One entry per optional
-// call site, so a future revert of any one site back to Get is caught here.
+// TestOptionalEndpoints403NotCounted / ...404... force each optional endpoint
+// to an expected-absence status in turn and assert pve_request_errors_total
+// stays 0. Both statuses are covered because isExpectedAbsence treats 403 and
+// 404 alike; one entry per optional call site, so a future revert of any one
+// site back to Get is caught here.
 func TestOptionalEndpoints403NotCounted(t *testing.T) {
+	testOptionalStatusNotCounted(t, http.StatusForbidden)
+}
+
+func TestOptionalEndpoints404NotCounted(t *testing.T) {
+	testOptionalStatusNotCounted(t, http.StatusNotFound)
+}
+
+func testOptionalStatusNotCounted(t *testing.T, status int) {
+	t.Helper()
 	optionalPaths := []string{
 		"/api2/json/cluster/config/qdevice",
 		"/api2/json/cluster/backup-info/not-backed-up",
@@ -385,7 +396,7 @@ func TestOptionalEndpoints403NotCounted(t *testing.T) {
 	}
 	for _, path := range optionalPaths {
 		t.Run(path, func(t *testing.T) {
-			srv := fakePVE(t, map[string]int{path: http.StatusForbidden})
+			srv := fakePVE(t, map[string]int{path: status})
 			t.Cleanup(srv.Close)
 			store := NewSnapshotStore()
 			c := NewCollector([]Target{testTarget(t, srv)}, store, time.Minute, 10*time.Second, allOptionalToggles(), 0)
@@ -397,7 +408,7 @@ func TestOptionalEndpoints403NotCounted(t *testing.T) {
 			}
 			for _, s := range samples {
 				if s.Value != 0 {
-					t.Errorf("403 on optional %s: %s = %v, want 0", path, metricRequestErrors, s.Value)
+					t.Errorf("%d on optional %s: %s = %v, want 0", status, path, metricRequestErrors, s.Value)
 				}
 			}
 		})
