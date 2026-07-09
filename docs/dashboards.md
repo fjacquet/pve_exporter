@@ -189,6 +189,8 @@ panel's field configuration in the dashboard JSON.
 
 The landing page for a cluster. Use the `cluster` variable to select a target.
 
+![Cluster Overview dashboard](assets/screenshots/cluster-overview.png){ loading=lazy }
+
 **Health & Status row** — six stat panels:
 
 | Panel | PromQL summary |
@@ -225,6 +227,8 @@ memory panels do not.
 Selected by the `$node` variable (populated from `pve_node_info.name` for the
 chosen cluster).
 
+![Node Detail dashboard](assets/screenshots/node-detail.png){ loading=lazy }
+
 **Node Status row** — ten stat panels including: Node Up, CPU Usage, Memory
 Used, Memory Total, Root Disk Used %, Uptime, Guest Count, Subscription Days to
 Due, and PVE Version. Each joins against `pve_node_info` to filter by `$node`.
@@ -247,6 +251,8 @@ Due, and PVE Version. Each joins against `pve_node_info` to filter by `$node`.
 ### 3. Guest Detail (`pve-guest`)
 
 Selected by the `$guest` variable (populated from `pve_guest_info.name`).
+
+![Guest Detail dashboard](assets/screenshots/guest-detail.png){ loading=lazy }
 
 **Guest Status row** — eleven stat panels: Guest Running, Guest Name, Node,
 Guest Type, Tags, Template, On Boot, CPU Limit, Current HA State, and Current
@@ -283,6 +289,8 @@ series by guest name.
 ### 4. Storage (`pve-storage`)
 
 Cluster-wide view of all storage targets.
+
+![Storage dashboard](assets/screenshots/storage.png){ loading=lazy }
 
 **Summary row** — three stat panels: Total Capacity, Total Used, Shared Storages
 (count of `pve_storage_shared == 1`).
@@ -332,6 +340,8 @@ node's subscription expires, computed as
 ### 6. HA & Quorum (`pve-ha-quorum`)
 
 Quorum health, QDevice state, and HA-managed guest inventory.
+
+![HA & Quorum dashboard](assets/screenshots/ha-quorum.png){ loading=lazy }
 
 **Cluster Status row**:
 
