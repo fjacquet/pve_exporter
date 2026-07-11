@@ -1,6 +1,6 @@
 ---
 # Sample configuration for pve_exporter.
-# Secret-bearing fields accept ${ENV_VAR} references, expanded at load time.
+# Secret-bearing fields accept <ENV_VAR> references, expanded at load time.
 # A .env file next to this config (or in the working directory) is auto-loaded.
 
 server:
