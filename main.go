@@ -163,13 +163,7 @@ func run() error {
 	registry.MustRegister(pve.NewPromCollector(store))
 
 	mux := http.NewServeMux()
-	mux.Handle(cfg.Server.URI, promhttp.HandlerFor(registry, promhttp.HandlerOpts{}))
-	mux.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("ok"))
-	})
-	mux.HandleFunc("/livez", staticOKHandler)
-	mux.HandleFunc("/readyz", staticOKHandler)
+	registerEndpoints(mux, promhttp.HandlerFor(registry, promhttp.HandlerOpts{}), cfg.Server.URI)
 	httpServer := &http.Server{
 		Addr:              cfg.GetServerAddress(),
 		Handler:           mux,
@@ -216,6 +210,22 @@ func run() error {
 	cancel()
 	shutdown(context.Background(), httpServer, otlpExp, tracer)
 	return nil
+}
+
+// registerEndpoints wires every route the exporter serves onto mux. It is the
+// single source of truth for the route table: run() and the tests both call it,
+// so a test that probes a path exercises the registration that ships. metrics
+// may be nil, in which case only the health and probe routes are registered.
+func registerEndpoints(mux *http.ServeMux, metrics http.Handler, uri string) {
+	if metrics != nil {
+		mux.Handle(uri, metrics)
+	}
+	mux.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok"))
+	})
+	mux.HandleFunc("/livez", staticOKHandler)
+	mux.HandleFunc("/readyz", staticOKHandler)
 }
 
 // staticOKHandler always answers 200 — no snapshot state, no collection
