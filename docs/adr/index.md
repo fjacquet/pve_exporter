@@ -13,3 +13,4 @@ follows the **Status / Context / Decision / Consequences** structure.
 | [0006](0006-label-invariant.md) | Label-set invariant per metric name | Accepted |
 | [0007](0007-qdevice-state-gap.md) | QDevice tie-breaker/state gap | Accepted |
 | [0008](0008-request-error-counting.md) | Request-error counting on optional endpoints | Accepted |
+| [0009](0009-health-probes.md) | `/livez` `/readyz` probes and container HEALTHCHECK | Accepted |
