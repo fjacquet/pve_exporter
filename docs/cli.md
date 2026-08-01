@@ -34,8 +34,8 @@ not request headers. Trace output is therefore safe to share when opening a bug 
 | Path | Description |
 |------|-------------|
 | `/metrics` | Prometheus text exposition (default port `9221`). The path is `server.uri`. |
-| `/livez` | Liveness probe. Always `200 OK`; reads no collection state. |
-| `/readyz` | Readiness probe. Always `200 OK`; reads no collection state. |
+| `/livez` | Liveness probe. Always `200 OK`; reads no collection state. Answers from process start, before the first collection cycle. |
+| `/readyz` | Readiness probe. Always `200 OK`; reads no collection state. Answers from process start, before the first collection cycle. |
 | `/health` | Informational. Always `200 OK` while the process is serving. |
 
 Point Kubernetes `livenessProbe` and `readinessProbe` at `/livez` and

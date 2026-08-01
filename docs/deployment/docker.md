@@ -50,7 +50,28 @@ resolves `localhost` via `::1` first and the exporter binds IPv4 only, so a
 For Kubernetes, use `/livez` for `livenessProbe` and `/readyz` for
 `readinessProbe`. Both always return `200 OK` and read no collection state, so
 neither can restart or de-pool a healthy pod when a Proxmox cluster is
-unreachable.
+unreachable. The HTTP listener binds *before* the first collection cycle
+(ADR-0002), so both answer within milliseconds of process start even when
+every configured cluster is a TCP blackhole.
+
+Because the listener is up almost immediately, no `startupProbe` and no long
+`initialDelaySeconds` are needed — a couple of seconds of grace is enough to
+cover process start:
+
+```yaml
+livenessProbe:
+  httpGet: { path: /livez, port: 9221 }
+  initialDelaySeconds: 2
+  periodSeconds: 10
+readinessProbe:
+  httpGet: { path: /readyz, port: 9221 }
+  initialDelaySeconds: 2
+  periodSeconds: 10
+```
+
+Do not raise `initialDelaySeconds` to cover `collection.timeout`: the probes
+never wait on collection, and a long delay only slows down detection of a
+genuinely dead process.
 
 ## Environment variables
 
