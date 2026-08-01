@@ -1,9 +1,15 @@
 package main
 
 import (
+	"context"
+	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
+	"time"
 )
 
 func TestStaticOKHandlerReturns200(t *testing.T) {
@@ -84,5 +90,90 @@ func TestRegisterEndpointsServesMetricsAtURI(t *testing.T) {
 
 	if rec.Code != http.StatusOK || rec.Body.String() != "exposition" {
 		t.Fatalf("metrics route: status=%d body=%q", rec.Code, rec.Body.String())
+	}
+}
+
+// freePort reserves and immediately releases a loopback port, returning it for
+// the process under test to bind.
+func freePort(t *testing.T) string {
+	t.Helper()
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("reserve port: %v", err)
+	}
+	defer func() { _ = ln.Close() }()
+	_, port, err := net.SplitHostPort(ln.Addr().String())
+	if err != nil {
+		t.Fatalf("split addr: %v", err)
+	}
+	return port
+}
+
+// TestLivezAnswersBeforeFirstCollectionCompletes is the regression test for the
+// startup ordering: the HTTP listener must bind before the first collection
+// cycle. The configured target is a TEST-NET-3 address that blackholes TCP, so
+// the first cycle cannot finish before the 25s collection timeout — if the
+// listener waited on it, /livez could not answer inside this test's budget.
+func TestLivezAnswersBeforeFirstCollectionCompletes(t *testing.T) {
+	port := freePort(t)
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.yaml")
+	cfg := fmt.Sprintf(`server:
+  host: "127.0.0.1"
+  port: %q
+  uri: "/metrics"
+collection:
+  interval: "30s"
+  timeout: "25s"
+clusters:
+  - name: unreachable
+    host: "203.0.113.1:8006"
+    tokenID: "exporter@pve!metrics"
+    tokenSecret: "00000000-0000-0000-0000-000000000000"
+    insecureSkipVerify: true
+`, port)
+	if err := os.WriteFile(path, []byte(cfg), 0o600); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	prevConfig, prevOnce := configFile, once
+	t.Cleanup(func() { configFile, once = prevConfig, prevOnce })
+	configFile, once = path, false
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() { done <- run(ctx) }()
+	t.Cleanup(func() {
+		cancel()
+		select {
+		case <-done:
+		case <-time.After(15 * time.Second):
+			t.Error("run() did not return after context cancellation")
+		}
+	})
+
+	// 5s is comfortably below the 25s collection timeout (30s startup deadline)
+	// that a blocking first cycle would impose.
+	deadline := time.Now().Add(5 * time.Second)
+	url := "http://127.0.0.1:" + port + "/livez"
+	client := &http.Client{Timeout: time.Second}
+	for {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		if err != nil {
+			t.Fatalf("build probe request: %v", err)
+		}
+		resp, err := client.Do(req)
+		if err == nil {
+			code := resp.StatusCode
+			_ = resp.Body.Close()
+			if code == http.StatusOK {
+				return
+			}
+			t.Fatalf("/livez status = %d, want %d", code, http.StatusOK)
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("/livez unreachable within 5s of startup: %v", err)
+		}
+		time.Sleep(20 * time.Millisecond)
 	}
 }

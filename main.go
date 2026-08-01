@@ -41,7 +41,7 @@ func main() {
 		Version:       version,
 		SilenceUsage:  true,
 		SilenceErrors: true,
-		RunE:          func(_ *cobra.Command, _ []string) error { return run() },
+		RunE:          func(cmd *cobra.Command, _ []string) error { return run(cmd.Context()) },
 	}
 	rootCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "", "Path to configuration file (required)")
 	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "Enable debug logging")
@@ -87,7 +87,10 @@ func buildTargets(cfg *models.Config, trace bool) []pve.Target {
 	return targets
 }
 
-func run() error {
+// run wires the exporter up and blocks until parent is cancelled, a termination
+// signal arrives, or the HTTP server fails. parent is normally
+// context.Background(); tests pass a cancellable context to drive shutdown.
+func run(parent context.Context) error {
 	utils.LoadDotEnv(configFile)
 
 	cfg, err := models.LoadConfig(configFile, utils.ResolveSecrets)
@@ -114,7 +117,7 @@ func run() error {
 		cfg.GetMaxConcurrentTargets(),
 	)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(parent)
 	defer cancel()
 
 	// Optional tracing.
@@ -133,24 +136,10 @@ func run() error {
 		}
 	}
 
-	// First collection cycle synchronously so /metrics is populated immediately.
-	startCtx, startCancel := context.WithTimeout(ctx, cfg.GetCollectionTimeout()+5*time.Second)
-	snap := collector.CollectOnce(startCtx)
-	startCancel()
-
-	// Optional OTLP metric export.
-	var otlpExp *pve.OTLPExporter
-	if cfg.IsOTelMetricsEnabled() {
-		otlpExp, err = pve.NewOTLPExporter(ctx, cfg.OpenTelemetry.Metrics, store, version)
-		if err != nil {
-			log.WithError(err).Warn("OTLP metrics init failed, continuing without OTLP")
-			otlpExp = nil
-		} else if err := otlpExp.EnsureInstruments(); err != nil {
-			log.WithError(err).Warn("OTLP instrument registration failed")
-		}
-	}
-
+	// --once: a single synchronous cycle with no HTTP server at all.
 	if once {
+		snap := collectFirstCycle(ctx, collector, cfg.GetCollectionTimeout())
+		otlpExp := setupOTLP(ctx, cfg, store)
 		if debug {
 			dumpSamples(snap)
 		}
@@ -178,8 +167,24 @@ func run() error {
 		}
 	}()
 
-	// Background collection loop.
-	go collector.Run(ctx)
+	// Optional OTLP metric export. Created before the first cycle so the
+	// collection goroutine below can register instruments as soon as it lands.
+	otlpExp := setupOTLP(ctx, cfg, store)
+
+	// The listener is already bound above (ADR-0002): the first collection
+	// runs in the background so an unreachable cluster cannot delay /livez,
+	// /readyz or /metrics by a whole collection timeout. Until the first
+	// snapshot lands the store serves an empty one, so /metrics is valid and
+	// simply reports nothing.
+	go func() {
+		collectFirstCycle(ctx, collector, cfg.GetCollectionTimeout())
+		if otlpExp != nil {
+			if err := otlpExp.EnsureInstruments(); err != nil {
+				log.WithError(err).Warn("OTLP instrument registration failed")
+			}
+		}
+		collector.Run(ctx)
+	}()
 
 	// Keep OTLP instruments in sync with newly-seen metric names.
 	if otlpExp != nil {
@@ -200,6 +205,8 @@ func run() error {
 	select {
 	case s := <-sig:
 		log.WithField("signal", s.String()).Info("shutting down")
+	case <-parent.Done():
+		log.Info("context cancelled, shutting down")
 	case err := <-serverErr:
 		log.WithError(err).Error("HTTP server error")
 	}
@@ -226,6 +233,30 @@ func registerEndpoints(mux *http.ServeMux, metrics http.Handler, uri string) {
 	})
 	mux.HandleFunc("/livez", staticOKHandler)
 	mux.HandleFunc("/readyz", staticOKHandler)
+}
+
+// collectFirstCycle runs the startup collection cycle under its own deadline.
+func collectFirstCycle(ctx context.Context, collector *pve.Collector, timeout time.Duration) *pve.Snapshot {
+	cycleCtx, cancel := context.WithTimeout(ctx, timeout+5*time.Second)
+	defer cancel()
+	return collector.CollectOnce(cycleCtx)
+}
+
+// setupOTLP builds the optional OTLP metric exporter. It returns nil when OTLP
+// is disabled or fails to initialise — neither is fatal.
+func setupOTLP(ctx context.Context, cfg *models.Config, store *pve.SnapshotStore) *pve.OTLPExporter {
+	if !cfg.IsOTelMetricsEnabled() {
+		return nil
+	}
+	exp, err := pve.NewOTLPExporter(ctx, cfg.OpenTelemetry.Metrics, store, version)
+	if err != nil {
+		log.WithError(err).Warn("OTLP metrics init failed, continuing without OTLP")
+		return nil
+	}
+	if err := exp.EnsureInstruments(); err != nil {
+		log.WithError(err).Warn("OTLP instrument registration failed")
+	}
+	return exp
 }
 
 // staticOKHandler always answers 200 — no snapshot state, no collection
