@@ -25,6 +25,14 @@ history between tags.
 
 ### Fixed
 
+- The HTTP listener now binds **before** the first collection cycle. It
+  previously waited on a synchronous startup collection, so with the default
+  `collection.timeout: 25s` nothing — including `/livez` and `/readyz` — was
+  reachable for 30s whenever a Proxmox cluster was unreachable. `--once` is
+  unaffected and still runs a single synchronous cycle with no HTTP server.
+- `server.uri` is validated against the routes the exporter registers itself.
+  Setting it to `/`, `/health`, `/livez` or `/readyz` now fails startup with an
+  explicit `server.uri: …` error instead of panicking `http.ServeMux`.
 - `./Dockerfile`'s builder stage bumped from `golang:1.26.4` to `golang:1.26.5`
   to match the `go 1.26.5` directive in `go.mod` (added in v0.4.2 for
   GO-2026-5856) — `docker build .` had been broken since that release.
