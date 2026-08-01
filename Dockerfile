@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM golang:1.26.4 AS builder
+FROM golang:1.26.5 AS builder
 
 WORKDIR /app
 
@@ -29,6 +29,11 @@ COPY --from=builder /app/pve_exporter /usr/bin/pve_exporter
 COPY config.yaml /etc/pve_exporter/config.yaml
 
 EXPOSE 9221
+
+# busybox wget is present in the Alpine base. 127.0.0.1, not localhost:
+# busybox resolves localhost via ::1 first and the exporter binds IPv4 only.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget --quiet --tries=1 --spider http://127.0.0.1:9221/livez || exit 1
 
 USER pve
 
