@@ -166,7 +166,7 @@ These apply to every task below. Read them once, honour them throughout.
   package scope in `package main`, consumed by Task 1's registrations and by
   `main_test.go` (Task 2).
 
-- [ ] **Step 1: Read the current mux block.** Open
+- [x] **Step 1: Read the current mux block.** Open
       `/Users/fjacquet/Projects/pve_exporter/main.go` and read lines 160-180.
       Confirm you see exactly this, and note that `/health` already writes
       `http.StatusOK` unconditionally — there is nothing to fix there:
@@ -183,7 +183,7 @@ These apply to every task below. Read them once, honour them throughout.
       If the file does not match, stop and re-read the whole of `run()` before
       continuing.
 
-- [ ] **Step 2: Write the failing test file.** Create
+- [x] **Step 2: Write the failing test file.** Create
       `/Users/fjacquet/Projects/pve_exporter/main_test.go` with exactly this
       content. It is the repo's first `package main` test; it uses only stdlib,
       matching the plain table/assert style of `internal/pve/parse_test.go`:
@@ -216,7 +216,7 @@ These apply to every task below. Read them once, honour them throughout.
       }
       ```
 
-- [ ] **Step 3: Run it and confirm it fails to compile.** Run:
+- [x] **Step 3: Run it and confirm it fails to compile.** Run:
 
       ```bash
       cd /Users/fjacquet/Projects/pve_exporter && go test ./... -run TestStaticOKHandler
@@ -227,7 +227,7 @@ These apply to every task below. Read them once, honour them throughout.
       compiles, `staticOKHandler` already exists — re-read `main.go` before
       continuing.
 
-- [ ] **Step 4: Add `staticOKHandler` to `main.go`.** Insert this function at
+- [x] **Step 4: Add `staticOKHandler` to `main.go`.** Insert this function at
       package scope. Put it immediately before `syncInstruments` (i.e. after the
       closing brace of `run()`, around line 218):
 
@@ -243,7 +243,7 @@ These apply to every task below. Read them once, honour them throughout.
       }
       ```
 
-- [ ] **Step 5: Register the two routes on the inline mux.** In `run()`, directly
+- [x] **Step 5: Register the two routes on the inline mux.** In `run()`, directly
       after the closing `})` of the existing `/health` registration and before
       `httpServer := &http.Server{`, add:
 
@@ -273,7 +273,7 @@ These apply to every task below. Read them once, honour them throughout.
       Do **not** extract a helper, do **not** move the mux construction out of
       `run()`, and do **not** alter the `/health` closure.
 
-- [ ] **Step 6: Run the test and confirm it passes.**
+- [x] **Step 6: Run the test and confirm it passes.**
 
       ```bash
       cd /Users/fjacquet/Projects/pve_exporter && go test ./... -run TestStaticOKHandler -v
@@ -282,7 +282,7 @@ These apply to every task below. Read them once, honour them throughout.
       Expect `--- PASS: TestStaticOKHandler/_livez` and
       `--- PASS: TestStaticOKHandler/_readyz`.
 
-- [ ] **Step 7: Commit.**
+- [x] **Step 7: Commit.**
 
       ```bash
       cd /Users/fjacquet/Projects/pve_exporter && git add main.go main_test.go && \
@@ -305,7 +305,7 @@ These apply to every task below. Read them once, honour them throughout.
 Task 1's test calls the handler directly. That does not prove the routes are
 registered. This task adds a mux-level test that would catch a typo'd path.
 
-- [ ] **Step 1: Append the mux-level failing test.** Add to the bottom of
+- [x] **Step 1: Append the mux-level failing test.** Add to the bottom of
       `/Users/fjacquet/Projects/pve_exporter/main_test.go`:
 
       ```go
@@ -361,7 +361,7 @@ registered. This task adds a mux-level test that would catch a typo'd path.
       }
       ```
 
-- [ ] **Step 2: Run and confirm green.**
+- [x] **Step 2: Run and confirm green.**
 
       ```bash
       cd /Users/fjacquet/Projects/pve_exporter && go test ./... -run 'TestProbeRoutes|TestHealthAlways|TestStaticOK' -v
@@ -369,7 +369,7 @@ registered. This task adds a mux-level test that would catch a typo'd path.
 
       Expect five passing subtests/tests, no failures.
 
-- [ ] **Step 3: Run the full suite with the race detector.**
+- [x] **Step 3: Run the full suite with the race detector.**
 
       ```bash
       cd /Users/fjacquet/Projects/pve_exporter && go test -race ./...
@@ -378,7 +378,7 @@ registered. This task adds a mux-level test that would catch a typo'd path.
       Expect `ok` for every package, including the new `github.com/fjacquet/pve_exporter`
       root package line.
 
-- [ ] **Step 4: Run the lint + format gate.**
+- [x] **Step 4: Run the lint + format gate.**
 
       ```bash
       cd /Users/fjacquet/Projects/pve_exporter && make fmt-check && make vet && make lint
@@ -387,7 +387,7 @@ registered. This task adds a mux-level test that would catch a typo'd path.
       All three must be clean. If `fmt-check` complains, run `make fmt` and
       re-run.
 
-- [ ] **Step 5: Commit.**
+- [x] **Step 5: Commit.**
 
       ```bash
       cd /Users/fjacquet/Projects/pve_exporter && git add main_test.go && \
@@ -406,7 +406,7 @@ registered. This task adds a mux-level test that would catch a typo'd path.
 - Produces: a container-level health status readable via
   `docker inspect --format='{{.State.Health.Status}}'`.
 
-- [ ] **Step 1: Read the runtime stage.** Open
+- [x] **Step 1: Read the runtime stage.** Open
       `/Users/fjacquet/Projects/pve_exporter/Dockerfile` and confirm the tail
       reads:
 
@@ -425,7 +425,7 @@ registered. This task adds a mux-level test that would catch a typo'd path.
       Note `FROM alpine:latest` at line 15 — already correct, leave it alone
       (Global Constraint 11).
 
-- [ ] **Step 2: Insert the `HEALTHCHECK` between `EXPOSE` and `USER`.** The file
+- [x] **Step 2: Insert the `HEALTHCHECK` between `EXPOSE` and `USER`.** The file
       tail becomes:
 
       ```dockerfile
@@ -442,7 +442,7 @@ registered. This task adds a mux-level test that would catch a typo'd path.
       CMD ["--config", "/etc/pve_exporter/config.yaml"]
       ```
 
-- [ ] **Step 3: Build the image.**
+- [x] **Step 3: Build the image.**
 
       ```bash
       cd /Users/fjacquet/Projects/pve_exporter && docker build -t pve_exporter:healthcheck-test .
@@ -451,7 +451,7 @@ registered. This task adds a mux-level test that would catch a typo'd path.
       Expect a successful build. This stage compiles the binary, so a Go
       compilation error from Task 1 would surface here.
 
-- [ ] **Step 4: Run it and assert `healthy`.** The exporter needs a config; the
+- [x] **Step 4: Run it and assert `healthy`.** The exporter needs a config; the
       image ships `/etc/pve_exporter/config.yaml` and the probe does not depend on
       a reachable Proxmox cluster (that is the whole point of `staticOKHandler`).
 
@@ -468,13 +468,13 @@ registered. This task adds a mux-level test that would catch a typo'd path.
       failing log entries, and check `docker logs pve_hc_test` — do **not** move
       on.
 
-- [ ] **Step 5: Tear down.**
+- [x] **Step 5: Tear down.**
 
       ```bash
       docker rm -f pve_hc_test && docker rmi pve_exporter:healthcheck-test
       ```
 
-- [ ] **Step 6: Run hadolint and read, but do not act on, the findings.**
+- [x] **Step 6: Run hadolint and read, but do not act on, the findings.**
 
       ```bash
       cd /Users/fjacquet/Projects/pve_exporter && docker run --rm -i hadolint/hadolint < Dockerfile
@@ -484,7 +484,7 @@ registered. This task adds a mux-level test that would catch a typo'd path.
       *other* finding introduced by your edit must be fixed. Do not add inline
       ignore comments.
 
-- [ ] **Step 7: Commit.**
+- [x] **Step 7: Commit.**
 
       ```bash
       cd /Users/fjacquet/Projects/pve_exporter && git add Dockerfile && \
@@ -503,7 +503,7 @@ registered. This task adds a mux-level test that would catch a typo'd path.
 - Produces: the same health status on the *published* GHCR image (this is the
   Dockerfile GoReleaser actually uses; `./Dockerfile` is local/dev only).
 
-- [ ] **Step 1: Read the file.** Confirm
+- [x] **Step 1: Read the file.** Confirm
       `/Users/fjacquet/Projects/pve_exporter/Dockerfile.goreleaser` is:
 
       ```dockerfile
@@ -526,7 +526,7 @@ registered. This task adds a mux-level test that would catch a typo'd path.
       CMD ["--config", "/etc/pve_exporter/config.yaml"]
       ```
 
-- [ ] **Step 2: Insert the identical `HEALTHCHECK` between `EXPOSE` and `USER`.**
+- [x] **Step 2: Insert the identical `HEALTHCHECK` between `EXPOSE` and `USER`.**
 
       ```dockerfile
       EXPOSE 9221
@@ -542,7 +542,7 @@ registered. This task adds a mux-level test that would catch a typo'd path.
       Byte-identical to Task 3's — same interval, same 5s timeout, same port, same
       path.
 
-- [ ] **Step 3: Cross-compile a binary and lay it out per-platform.** This
+- [x] **Step 3: Cross-compile a binary and lay it out per-platform.** This
       Dockerfile does not build Go; it expects the binary at
       `${TARGETPLATFORM}/pve_exporter` in the build context. On Apple Silicon
       (Global Constraint 7):
@@ -558,7 +558,7 @@ registered. This task adds a mux-level test that would catch a typo'd path.
       On an x86_64 host, substitute `GOARCH=amd64` and `linux/amd64` throughout
       this and the next step.
 
-- [ ] **Step 4: Build with the matching `TARGETPLATFORM`.**
+- [x] **Step 4: Build with the matching `TARGETPLATFORM`.**
 
       ```bash
       docker build -f /tmp/pvegr/Dockerfile.goreleaser \
@@ -570,7 +570,7 @@ registered. This task adds a mux-level test that would catch a typo'd path.
       `exec format error` when the container starts — which looks like a
       healthcheck failure but is a build mistake.
 
-- [ ] **Step 5: Run it and assert `healthy`.**
+- [x] **Step 5: Run it and assert `healthy`.**
 
       ```bash
       docker rm -f pve_gr_hc_test 2>/dev/null
@@ -583,13 +583,13 @@ registered. This task adds a mux-level test that would catch a typo'd path.
       for `exec format error` first (see Step 4), then
       `docker inspect --format='{{json .State.Health}}' pve_gr_hc_test`.
 
-- [ ] **Step 6: Tear down.**
+- [x] **Step 6: Tear down.**
 
       ```bash
       docker rm -f pve_gr_hc_test && docker rmi pve_exporter:gr-healthcheck-test && rm -rf /tmp/pvegr
       ```
 
-- [ ] **Step 7: Run hadolint.**
+- [x] **Step 7: Run hadolint.**
 
       ```bash
       cd /Users/fjacquet/Projects/pve_exporter && docker run --rm -i hadolint/hadolint < Dockerfile.goreleaser
@@ -597,7 +597,7 @@ registered. This task adds a mux-level test that would catch a typo'd path.
 
       `DL3025`, `DL3007`, `DL3066` expected. No inline suppressions.
 
-- [ ] **Step 8: Commit.**
+- [x] **Step 8: Commit.**
 
       ```bash
       cd /Users/fjacquet/Projects/pve_exporter && git add Dockerfile.goreleaser && \
@@ -618,7 +618,7 @@ registered. This task adds a mux-level test that would catch a typo'd path.
   stacks. Note this **overrides** the image's `HEALTHCHECK` — which is why the
   values must match exactly (Global Constraint 4).
 
-- [ ] **Step 1: Edit `docker-compose.yml`.** In the `pve_exporter` service, insert
+- [x] **Step 1: Edit `docker-compose.yml`.** In the `pve_exporter` service, insert
       the `healthcheck:` block between `environment:` and `restart:`. The service
       becomes:
 
@@ -649,7 +649,7 @@ registered. This task adds a mux-level test that would catch a typo'd path.
           restart: unless-stopped
       ```
 
-- [ ] **Step 2: Edit `docker-compose.ghcr.yml`.** Same block, same position, in
+- [x] **Step 2: Edit `docker-compose.ghcr.yml`.** Same block, same position, in
       its `pve_exporter` service:
 
       ```yaml
@@ -675,7 +675,7 @@ registered. This task adds a mux-level test that would catch a typo'd path.
           restart: unless-stopped
       ```
 
-- [ ] **Step 3: Validate both files parse.**
+- [x] **Step 3: Validate both files parse.**
 
       ```bash
       cd /Users/fjacquet/Projects/pve_exporter && \
@@ -685,7 +685,7 @@ registered. This task adds a mux-level test that would catch a typo'd path.
 
       Expect `compose OK` with no YAML errors.
 
-- [ ] **Step 4: Grep-verify no `localhost` crept in.** Global Constraint 3 —
+- [x] **Step 4: Grep-verify no `localhost` crept in.** Global Constraint 3 —
       `docker compose config -q` will happily accept a `localhost` URL that fails
       at runtime, so check by hand:
 
@@ -697,7 +697,7 @@ registered. This task adds a mux-level test that would catch a typo'd path.
       Expect **no output** (grep exit code 1). Any hit is a bug — fix it to
       `127.0.0.1`.
 
-- [ ] **Step 5: Verify the compose healthcheck actually runs.** Bring the build
+- [x] **Step 5: Verify the compose healthcheck actually runs.** Bring the build
       stack up (only the exporter service; Prometheus and Grafana are not needed):
 
       ```bash
@@ -710,13 +710,13 @@ registered. This task adds a mux-level test that would catch a typo'd path.
       Expect exactly `healthy`. The token is deliberately bogus — the exporter
       will fail to scrape and that is fine; `/livez` reads no state.
 
-- [ ] **Step 6: Tear down.**
+- [x] **Step 6: Tear down.**
 
       ```bash
       cd /Users/fjacquet/Projects/pve_exporter && docker compose -f docker-compose.yml down
       ```
 
-- [ ] **Step 7: Commit.**
+- [x] **Step 7: Commit.**
 
       ```bash
       cd /Users/fjacquet/Projects/pve_exporter && \
@@ -748,7 +748,7 @@ tagged version through v0.4.2.
 > commit subject is genuinely uninformative, read the commit
 > (`git show --stat <sha>`) rather than guessing.
 
-- [ ] **Step 1: Enumerate the tags and their dates.**
+- [x] **Step 1: Enumerate the tags and their dates.**
 
       ```bash
       cd /Users/fjacquet/Projects/pve_exporter && \
@@ -768,7 +768,7 @@ tagged version through v0.4.2.
       v0.4.2 2026-07-12
       ```
 
-- [ ] **Step 2: Read the commits in each range.** Run every one of these and read
+- [x] **Step 2: Read the commits in each range.** Run every one of these and read
       the output — the entries you write must come from here:
 
       ```bash
@@ -786,7 +786,7 @@ tagged version through v0.4.2.
       For any commit subject that is truncated or opaque, run
       `git show --stat <sha>` before writing its entry.
 
-- [ ] **Step 3: Write `CHANGELOG.md`.** Create
+- [x] **Step 3: Write `CHANGELOG.md`.** Create
       `/Users/fjacquet/Projects/pve_exporter/CHANGELOG.md`. The content below is
       derived from the commit ranges above and is what Step 2's output supports.
       **Reconcile it against your own Step 2 output before saving** — if a range
@@ -925,7 +925,7 @@ tagged version through v0.4.2.
       [0.1.0]: https://github.com/fjacquet/pve_exporter/releases/tag/v0.1.0
       ```
 
-- [ ] **Step 4: Sanity-check the file.** Confirm every version heading has a
+- [x] **Step 4: Sanity-check the file.** Confirm every version heading has a
       matching link reference at the bottom, and that the version list matches
       Step 1's tag list exactly:
 
@@ -936,7 +936,7 @@ tagged version through v0.4.2.
 
       Both counts must be `8` (7 tags + `Unreleased`).
 
-- [ ] **Step 5: Commit.**
+- [x] **Step 5: Commit.**
 
       ```bash
       cd /Users/fjacquet/Projects/pve_exporter && git add CHANGELOG.md && \
@@ -956,7 +956,7 @@ tagged version through v0.4.2.
 - Produces: an ADR following this repo's **Status / Context / Decision /
   Consequences** structure, plus its row in the index table.
 
-- [ ] **Step 1: Confirm the next free ADR number.** Global Constraint 8 — list,
+- [x] **Step 1: Confirm the next free ADR number.** Global Constraint 8 — list,
       never assume:
 
       ```bash
@@ -967,7 +967,7 @@ tagged version through v0.4.2.
       free number. If the listing shows a `0009` already, use the next free number
       and adjust every filename and reference in this task accordingly.
 
-- [ ] **Step 2: Write the ADR.** Create
+- [x] **Step 2: Write the ADR.** Create
       `/Users/fjacquet/Projects/pve_exporter/docs/adr/0009-health-probes.md`:
 
       ```markdown
@@ -1054,7 +1054,7 @@ tagged version through v0.4.2.
         both Dockerfiles, so the family's Alpine convergence was a no-op here.
       ```
 
-- [ ] **Step 3: Add the index row.** In
+- [x] **Step 3: Add the index row.** In
       `/Users/fjacquet/Projects/pve_exporter/docs/adr/index.md`, append one row to
       the table, after the ADR-0008 row:
 
@@ -1070,7 +1070,7 @@ tagged version through v0.4.2.
       | [0009](0009-health-probes.md) | `/livez` `/readyz` probes and container HEALTHCHECK | Accepted |
       ```
 
-- [ ] **Step 4: Verify the link resolves.**
+- [x] **Step 4: Verify the link resolves.**
 
       ```bash
       cd /Users/fjacquet/Projects/pve_exporter && \
@@ -1079,7 +1079,7 @@ tagged version through v0.4.2.
 
       Both must succeed.
 
-- [ ] **Step 5: Commit.**
+- [x] **Step 5: Commit.**
 
       ```bash
       cd /Users/fjacquet/Projects/pve_exporter && git add docs/adr/ && \
@@ -1103,7 +1103,7 @@ The spec's Documentation section is explicit that every repo in the preceding
 Alpine effort needed a post-review fix wave because user-facing pages still made
 claims the change falsified. This task front-loads that sweep.
 
-- [ ] **Step 1: Find every user-facing mention of the health endpoint.**
+- [x] **Step 1: Find every user-facing mention of the health endpoint.**
 
       ```bash
       cd /Users/fjacquet/Projects/pve_exporter && \
@@ -1115,7 +1115,7 @@ claims the change falsified. This task front-loads that sweep.
       `nonroot` should produce no hits — this repo was already Alpine at uid
       10001.) If new hits appear, fix each one in this task.
 
-- [ ] **Step 2: Update the endpoints table in `docs/cli.md`.** Replace:
+- [x] **Step 2: Update the endpoints table in `docs/cli.md`.** Replace:
 
       ```markdown
       | Path | Description |
@@ -1140,7 +1140,7 @@ claims the change falsified. This task front-loads that sweep.
       `/metrics` question — see `pve_up` and `pve_request_errors_total`.
       ```
 
-- [ ] **Step 3: Document the container healthcheck in
+- [x] **Step 3: Document the container healthcheck in
       `docs/deployment/docker.md`.** Insert a new section immediately after the
       `### Logging` subsection and before `## Environment variables`:
 
@@ -1174,7 +1174,7 @@ claims the change falsified. This task front-loads that sweep.
       unreachable.
       ```
 
-- [ ] **Step 4: Add the missing ADR nav entries to `mkdocs.yml`.** The `nav:` list
+- [x] **Step 4: Add the missing ADR nav entries to `mkdocs.yml`.** The `nav:` list
       stops at ADR 0006 — 0007 and 0008 were never added, so the new one would
       inherit the same gap. Replace the last nav line
       (`      - ADR 0006 — Label invariant: adr/0006-label-invariant.md`) with:
@@ -1189,7 +1189,7 @@ claims the change falsified. This task front-loads that sweep.
       Do not touch anything else in `mkdocs.yml` — in particular leave
       `exclude_docs: superpowers/` and `extra.version` alone.
 
-- [ ] **Step 5: Build the docs site strictly.**
+- [x] **Step 5: Build the docs site strictly.**
 
       ```bash
       cd /Users/fjacquet/Projects/pve_exporter && make docs
@@ -1199,7 +1199,7 @@ claims the change falsified. This task front-loads that sweep.
       no warnings-as-errors. A broken relative link in the new ADR or index row
       surfaces here.
 
-- [ ] **Step 6: Clean the build output if it is untracked.**
+- [x] **Step 6: Clean the build output if it is untracked.**
 
       ```bash
       cd /Users/fjacquet/Projects/pve_exporter && git status --porcelain | head -20
@@ -1208,7 +1208,7 @@ claims the change falsified. This task front-loads that sweep.
       `site/` should be gitignored. If it shows up as untracked, remove it
       (`rm -rf site`) rather than committing it.
 
-- [ ] **Step 7: Commit.**
+- [x] **Step 7: Commit.**
 
       ```bash
       cd /Users/fjacquet/Projects/pve_exporter && \
@@ -1227,7 +1227,7 @@ claims the change falsified. This task front-loads that sweep.
 - Produces: evidence that the work is complete. Do not claim completion without
   having read each command's output.
 
-- [ ] **Step 1: Run the full CI gate.**
+- [x] **Step 1: Run the full CI gate.**
 
       ```bash
       cd /Users/fjacquet/Projects/pve_exporter && make ci
@@ -1236,7 +1236,7 @@ claims the change falsified. This task front-loads that sweep.
       This is `lint test build vuln`. All four must pass. Read the output; do not
       infer success from the absence of a visible error.
 
-- [ ] **Step 2: Run the local gate too.**
+- [x] **Step 2: Run the local gate too.**
 
       ```bash
       cd /Users/fjacquet/Projects/pve_exporter && make sure
@@ -1244,7 +1244,7 @@ claims the change falsified. This task front-loads that sweep.
 
       (`fmt vet test build`.) Clean.
 
-- [ ] **Step 3: Race-detector test run.**
+- [x] **Step 3: Race-detector test run.**
 
       ```bash
       cd /Users/fjacquet/Projects/pve_exporter && go test -race ./...
@@ -1253,7 +1253,7 @@ claims the change falsified. This task front-loads that sweep.
       Every package `ok`, including the root `github.com/fjacquet/pve_exporter`
       package that `main_test.go` created.
 
-- [ ] **Step 4: End-to-end probe check against a locally running binary.**
+- [x] **Step 4: End-to-end probe check against a locally running binary.**
 
       ```bash
       cd /Users/fjacquet/Projects/pve_exporter && make cli 2>/dev/null || go build -o pve_exporter .
@@ -1269,7 +1269,7 @@ claims the change falsified. This task front-loads that sweep.
       Expect `200` for all three paths. A `000` means the server did not start —
       check the config path and the log output before proceeding.
 
-- [ ] **Step 5: Re-verify the container health status one final time**, since the
+- [x] **Step 5: Re-verify the container health status one final time**, since the
       Dockerfile has not been rebuilt since Task 3:
 
       ```bash
@@ -1282,7 +1282,7 @@ claims the change falsified. This task front-loads that sweep.
 
       Expect exactly `healthy` before the teardown line.
 
-- [ ] **Step 6: Confirm the working tree is clean and review the full diff.**
+- [x] **Step 6: Confirm the working tree is clean and review the full diff.**
 
       ```bash
       cd /Users/fjacquet/Projects/pve_exporter && git status --porcelain && \
@@ -1299,38 +1299,38 @@ claims the change falsified. This task front-loads that sweep.
 Before declaring this work done, verify each of the following by running the
 command and reading the output — not by recalling that you did it earlier.
 
-- [ ] **`/health` was not modified.** `git diff main@{u}..HEAD -- main.go` shows
+- [x] **`/health` was not modified.** `git diff main@{u}..HEAD -- main.go` shows
       only the two added `mux.HandleFunc` lines and the added `staticOKHandler`
       function. The `/health` closure appears in the diff only as unchanged
       context. It was already always-200; nothing about it needed fixing.
-- [ ] **No `localhost` anywhere in a healthcheck.**
+- [x] **No `localhost` anywhere in a healthcheck.**
       `grep -rn localhost Dockerfile Dockerfile.goreleaser docker-compose.yml docker-compose.ghcr.yml`
       returns nothing.
-- [ ] **Timeout is `5s` in all four files.**
+- [x] **Timeout is `5s` in all four files.**
       `grep -rn "timeout=5s\|timeout: 5s" Dockerfile Dockerfile.goreleaser docker-compose.yml docker-compose.ghcr.yml`
       returns four hits. No `10s` timeout anywhere.
-- [ ] **Port is 9221 in all four healthchecks.**
+- [x] **Port is 9221 in all four healthchecks.**
       `grep -rn "127.0.0.1:9221/livez" Dockerfile Dockerfile.goreleaser docker-compose.yml docker-compose.ghcr.yml`
       returns four hits.
-- [ ] **Container health was observed, not assumed.** You ran
+- [x] **Container health was observed, not assumed.** You ran
       `docker inspect --format='{{.State.Health.Status}}'` against a real running
       container and read `healthy` — for the `./Dockerfile` build (Task 3), the
       `Dockerfile.goreleaser` build (Task 4), and the compose stack (Tasks 5 and
       9).
-- [ ] **No inline suppressions were added.**
+- [x] **No inline suppressions were added.**
       `grep -rn "hadolint ignore\|nolint\|nosemgrep" Dockerfile Dockerfile.goreleaser main.go main_test.go`
       returns nothing. `DL3025`/`DL3007`/`DL3066` are accepted findings.
-- [ ] **No base-image change was made.** Both Dockerfiles still say
+- [x] **No base-image change was made.** Both Dockerfiles still say
       `FROM alpine:latest` — this repo was already compliant.
-- [ ] **`main_test.go` exists and is the repo's first `package main` test**, and
+- [x] **`main_test.go` exists and is the repo's first `package main` test**, and
       it covers `/livez`, `/readyz` and `/health` both directly and through a mux.
-- [ ] **`CHANGELOG.md` exists**, is Keep a Changelog format, has a
+- [x] **`CHANGELOG.md` exists**, is Keep a Changelog format, has a
       `## [Unreleased]` section holding this work, has one section per tag through
       v0.4.2, and **every backfilled entry traces to a real commit** you read in
       Task 6 Step 2. Nothing was invented to fill space.
-- [ ] **The ADR number was confirmed by `ls docs/adr/`**, not assumed, and the ADR
+- [x] **The ADR number was confirmed by `ls docs/adr/`**, not assumed, and the ADR
       has a row in `docs/adr/index.md` and an entry in `mkdocs.yml`'s nav.
-- [ ] **`make ci` is green** and `mkdocs build --strict` is clean.
-- [ ] **The user-facing docs sweep found no stale claims.** `docs/cli.md` lists all
+- [x] **`make ci` is green** and `mkdocs build --strict` is clean.
+- [x] **The user-facing docs sweep found no stale claims.** `docs/cli.md` lists all
       three endpoints, `docs/deployment/docker.md` documents the healthcheck, and
       the grep for `distroless` / `65532` / `nonroot` returns nothing.
