@@ -20,6 +20,12 @@ services:
       - PVE1_HOST=${PVE1_HOST:-10.0.0.1:8006}
       - PVE1_TOKEN_ID=${PVE1_TOKEN_ID:-exporter@pam!prometheus}
       - PVE1_TOKEN_SECRET=${PVE1_TOKEN_SECRET:-}
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:9221/livez"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     restart: unless-stopped
 
   prometheus:
