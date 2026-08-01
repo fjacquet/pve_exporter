@@ -61,6 +61,9 @@ nav:
       - ADR 0004 — Authentication: adr/0004-auth.md
       - ADR 0005 — Naming & units: adr/0005-naming-units.md
       - ADR 0006 — Label invariant: adr/0006-label-invariant.md
+      - ADR 0007 — QDevice state gap: adr/0007-qdevice-state-gap.md
+      - ADR 0008 — Request-error counting: adr/0008-request-error-counting.md
+      - ADR 0009 — Health probes: adr/0009-health-probes.md
 
 extra:
   version: v0.1.1

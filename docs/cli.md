@@ -34,7 +34,14 @@ not request headers. Trace output is therefore safe to share when opening a bug 
 | Path | Description |
 |------|-------------|
 | `/metrics` | Prometheus text exposition (default port `9221`). |
-| `/health` | Health probe; returns `200 OK` when the exporter is running. |
+| `/livez` | Liveness probe. Always `200 OK`; reads no collection state. |
+| `/readyz` | Readiness probe. Always `200 OK`; reads no collection state. |
+| `/health` | Informational. Always `200 OK` while the process is serving. |
+
+Point Kubernetes `livenessProbe` and `readinessProbe` at `/livez` and
+`/readyz`. Never probe `/metrics`: it renders the full exposition on every
+tick and can block behind a slow collection cycle. Cluster reachability is a
+`/metrics` question — see `pve_up` and `pve_request_errors_total`.
 
 ## Troubleshooting
 

@@ -24,6 +24,34 @@ docker run --rm -p 9221:9221 \
 Add `--debug` for verbose logs, or `--trace` for token-safe HTTP
 request/response tracing (the `PVEAPIToken` secret is never printed).
 
+### Health check
+
+Both the published image and the local `./Dockerfile` declare a `HEALTHCHECK`
+that polls `/livez`:
+
+```dockerfile
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget --quiet --tries=1 --spider http://127.0.0.1:9221/livez || exit 1
+```
+
+Check it on a running container with:
+
+```bash
+docker inspect --format='{{.State.Health.Status}}' pve_exporter
+```
+
+Both Compose stacks declare the same check, so
+`depends_on: { pve_exporter: { condition: service_healthy } }` works.
+
+The address is `127.0.0.1`, not `localhost`: busybox `wget` in the Alpine base
+resolves `localhost` via `::1` first and the exporter binds IPv4 only, so a
+`localhost` check fails with connection refused.
+
+For Kubernetes, use `/livez` for `livenessProbe` and `/readyz` for
+`readinessProbe`. Both always return `200 OK` and read no collection state, so
+neither can restart or de-pool a healthy pod when a Proxmox cluster is
+unreachable.
+
 ## Environment variables
 
 The config file uses `${ENV_VAR}` placeholders, expanded at load time from the
