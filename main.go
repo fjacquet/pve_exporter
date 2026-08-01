@@ -168,6 +168,8 @@ func run() error {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))
 	})
+	mux.HandleFunc("/livez", staticOKHandler)
+	mux.HandleFunc("/readyz", staticOKHandler)
 	httpServer := &http.Server{
 		Addr:              cfg.GetServerAddress(),
 		Handler:           mux,
@@ -214,6 +216,16 @@ func run() error {
 	cancel()
 	shutdown(context.Background(), httpServer, otlpExp, tracer)
 	return nil
+}
+
+// staticOKHandler always answers 200 — no snapshot state, no collection
+// state, nothing that can make it fail. /livez and /readyz both use it: a
+// probe wired here can never be the reason a healthy process gets restarted
+// or pulled from rotation. /health remains the endpoint for anything that
+// wants to know whether a cluster is actually reachable.
+func staticOKHandler(w http.ResponseWriter, _ *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte("ok"))
 }
 
 // syncInstruments periodically re-registers OTLP instruments for new metrics.
