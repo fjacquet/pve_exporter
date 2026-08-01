@@ -73,6 +73,15 @@ files.
   `DL3025`; `DL3007`/`DL3066` remain standing family findings against the
   unpinned `alpine:latest` base. These are accepted, not suppressed — the repo
   adds no inline `hadolint ignore` comments.
+- The real cost of that unpinned base is **build reproducibility**: two builds
+  of the same commit can resolve a different `alpine:latest` layer, so the
+  runtime image is not a function of the source tree alone. That is accepted
+  deliberately, in exchange for picking up Alpine CVE fixes automatically on
+  every rebuild instead of waiting for someone to bump a digest. Provenance for
+  any particular image is recovered from its digest and published SBOM, not
+  from the Dockerfile. Pinning by digest would invert the trade —
+  reproducible builds, manual CVE tracking — and is a family-wide decision to
+  revisit, not a per-repo one.
 - `/livez` and `/readyz` return identical responses today. Should this exporter
   ever grow a genuine not-ready state — a required config that resolves
   asynchronously, say — `/readyz` is the endpoint that would change, and
