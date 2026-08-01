@@ -10,6 +10,8 @@ history between tags.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-08-01
+
 ### Added
 
 - `/livez` and `/readyz` endpoints, both wired to a handler that always returns
@@ -36,6 +38,14 @@ history between tags.
 - `./Dockerfile`'s builder stage bumped from `golang:1.26.4` to `golang:1.26.5`
   to match the `go 1.26.5` directive in `go.mod` (added in v0.4.2 for
   GO-2026-5856) — `docker build .` had been broken since that release.
+- Bumped `grpc` to v1.83.0, closing GO-2026-6061.
+
+### Documentation
+
+- `docs/deployment/docker.md` gained a concrete Kubernetes
+  `livenessProbe`/`readinessProbe` snippet and an explanation of why no
+  `startupProbe` or long `initialDelaySeconds` is warranted, now that the
+  listener binds before the first collection cycle.
 
 ### Notes
 
@@ -133,7 +143,8 @@ history between tags.
 
 - Initial release: Prometheus + OTLP exporter for Proxmox VE.
 
-[Unreleased]: https://github.com/fjacquet/pve_exporter/compare/v0.4.2...HEAD
+[Unreleased]: https://github.com/fjacquet/pve_exporter/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/fjacquet/pve_exporter/compare/v0.4.3...v0.5.0
 [0.4.2]: https://github.com/fjacquet/pve_exporter/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/fjacquet/pve_exporter/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/fjacquet/pve_exporter/compare/v0.3.0...v0.4.0
