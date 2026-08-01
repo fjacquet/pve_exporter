@@ -33,7 +33,7 @@ not request headers. Trace output is therefore safe to share when opening a bug 
 
 | Path | Description |
 |------|-------------|
-| `/metrics` | Prometheus text exposition (default port `9221`). |
+| `/metrics` | Prometheus text exposition (default port `9221`). The path is `server.uri`. |
 | `/livez` | Liveness probe. Always `200 OK`; reads no collection state. |
 | `/readyz` | Readiness probe. Always `200 OK`; reads no collection state. |
 | `/health` | Informational. Always `200 OK` while the process is serving. |
@@ -42,6 +42,10 @@ Point Kubernetes `livenessProbe` and `readinessProbe` at `/livez` and
 `/readyz`. Never probe `/metrics`: it renders the full exposition on every
 tick and can block behind a slow collection cycle. Cluster reachability is a
 `/metrics` question — see `pve_up` and `pve_request_errors_total`.
+
+`server.uri` must start with a slash and may not be `/`, `/health`, `/livez`
+or `/readyz`: those are reserved for the routes above. Startup fails with an
+explicit `server.uri: …` error rather than a mux panic.
 
 ## Troubleshooting
 

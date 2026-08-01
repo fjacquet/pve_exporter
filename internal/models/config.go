@@ -20,6 +20,17 @@ const (
 	defaultOTLPEndpoint = "localhost:4317"
 )
 
+// reservedPaths are the routes the exporter registers itself. server.uri may
+// not use any of them: net/http.ServeMux panics on a duplicate pattern, and a
+// metrics handler on "/" would shadow every mistyped probe path. Keep this in
+// sync with registerEndpoints in main.go.
+var reservedPaths = map[string]string{
+	"/":       "server root",
+	"/health": "health endpoint",
+	"/livez":  "liveness probe",
+	"/readyz": "readiness probe",
+}
+
 // ClusterConfig describes a single Proxmox VE target (a node or a cluster
 // reachable through one API endpoint). Secret-bearing fields accept ${ENV_VAR}
 // references that are expanded at load time.
@@ -147,6 +158,12 @@ func (c *Config) SetDefaults() {
 func (c *Config) Validate() error {
 	c.SetDefaults()
 
+	if !strings.HasPrefix(c.Server.URI, "/") {
+		return fmt.Errorf("server.uri: must start with a slash, got %q", c.Server.URI)
+	}
+	if what, reserved := reservedPaths[c.Server.URI]; reserved {
+		return fmt.Errorf("server.uri: %q is reserved for the %s and cannot be used as the metrics path", c.Server.URI, what)
+	}
 	if _, err := time.ParseDuration(c.Collection.Interval); err != nil {
 		return fmt.Errorf("collection.interval: %w", err)
 	}
