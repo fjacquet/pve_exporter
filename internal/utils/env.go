@@ -21,7 +21,11 @@ var envRefPattern = regexp.MustCompile(`\$\{([A-Za-z_][A-Za-z0-9_]*)(:-[^}]*)?\}
 // docker-compose syntax and its meaning: unset OR empty falls back, and the reference
 // never errors. That lets a shipped config.yaml drive a non-secret setting from the
 // environment while still starting on a host that never exported it. Use it only where a
-// safe default exists — a bare ${VAR} keeps the fail-loud behaviour that protects secrets.
+// safe default exists.
+//
+// A bare ${VAR} fails when the variable is UNSET; an exported-but-empty one expands to
+// the empty string, as it always has. Credential fields get the stricter treatment —
+// see ExpandEnvSecret.
 func ExpandEnv(s string) (string, error) {
 	var missing []string
 	out := envRefPattern.ReplaceAllStringFunc(s, func(match string) string {
@@ -45,19 +49,38 @@ func ExpandEnv(s string) (string, error) {
 	return out, nil
 }
 
+// ExpandEnvSecret expands like ExpandEnv, but additionally rejects a credential that was
+// written as an env reference yet resolves to nothing. A stray `PVE1_PASSWORD=` line in
+// a .env file is a plausible typo, and without this the exporter would authenticate with an
+// empty credential and report a failure that names the wrong cause.
+//
+// It fires only when the field actually contains a ${...} reference: a literal value is
+// passed through untouched and an omitted optional credential stays omitted, so it cannot
+// break a config that never referenced the environment in the first place.
+func ExpandEnvSecret(field, s string) (string, error) {
+	out, err := ExpandEnv(s)
+	if err != nil {
+		return "", err
+	}
+	if out == "" && envRefPattern.MatchString(s) {
+		return "", fmt.Errorf("%s references %s, which resolved to an empty value", field, s)
+	}
+	return out, nil
+}
+
 // ResolveSecrets expands ${ENV_VAR} references in every cluster's connection
 // fields and loads tokenSecret from tokenSecretFile when provided.
 func ResolveSecrets(cfg *models.Config) error {
 	for i := range cfg.Clusters {
 		cl := &cfg.Clusters[i]
 
-		host, err := ExpandEnv(cl.Host)
+		host, err := ExpandEnvSecret("host", cl.Host)
 		if err != nil {
 			return fmt.Errorf("clusters[%d] (%s) host: %w", i, cl.Name, err)
 		}
 		cl.Host = host
 
-		tokenID, err := ExpandEnv(cl.TokenID)
+		tokenID, err := ExpandEnvSecret("tokenID", cl.TokenID)
 		if err != nil {
 			return fmt.Errorf("clusters[%d] (%s) tokenID: %w", i, cl.Name, err)
 		}
@@ -72,7 +95,7 @@ func ResolveSecrets(cfg *models.Config) error {
 			continue
 		}
 
-		secret, err := ExpandEnv(cl.TokenSecret)
+		secret, err := ExpandEnvSecret("tokenSecret", cl.TokenSecret)
 		if err != nil {
 			return fmt.Errorf("clusters[%d] (%s) tokenSecret: %w", i, cl.Name, err)
 		}
