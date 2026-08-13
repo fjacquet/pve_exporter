@@ -11,21 +11,33 @@ import (
 	"github.com/fjacquet/pve_exporter/internal/models"
 )
 
-var envRefPattern = regexp.MustCompile(`\$\{([A-Za-z_][A-Za-z0-9_]*)\}`)
+var envRefPattern = regexp.MustCompile(`\$\{([A-Za-z_][A-Za-z0-9_]*)(:-[^}]*)?\}`)
 
 // ExpandEnv replaces every ${VAR} reference in s with the value of the
 // environment variable VAR, returning an error if any referenced variable is
 // unset. Strings without references are returned unchanged.
+//
+// A reference may carry a fallback as ${VAR:-default}, borrowing the shell /
+// docker-compose syntax and its meaning: unset OR empty falls back, and the reference
+// never errors. That lets a shipped config.yaml drive a non-secret setting from the
+// environment while still starting on a host that never exported it. Use it only where a
+// safe default exists — a bare ${VAR} keeps the fail-loud behaviour that protects secrets.
 func ExpandEnv(s string) (string, error) {
 	var missing []string
 	out := envRefPattern.ReplaceAllStringFunc(s, func(match string) string {
-		name := match[2 : len(match)-1]
+		sub := envRefPattern.FindStringSubmatch(match)
+		name, fallback := sub[1], sub[2]
 		v, ok := os.LookupEnv(name)
+		if ok && v != "" {
+			return v
+		}
+		if fallback != "" {
+			return fallback[len(":-"):] // group 2 keeps its ":-" prefix, so "" means absent
+		}
 		if !ok {
 			missing = append(missing, name)
-			return ""
 		}
-		return v
+		return ""
 	})
 	if len(missing) > 0 {
 		return "", fmt.Errorf("unset environment variable(s): %s", strings.Join(missing, ", "))
