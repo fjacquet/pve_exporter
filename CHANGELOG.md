@@ -10,6 +10,19 @@ history between tags.
 
 ## [Unreleased]
 
+### Added
+
+- `${VAR:-default}` fallbacks in config env references, ported from `pscale_exporter`.
+  Shell / docker-compose semantics: the variable falls back when unset *or* empty, and
+  such a reference never aborts startup. A bare `${VAR}` still fails loudly when the
+  variable is *unset*; an exported-but-empty one expands to the empty string, as it
+  always has.
+  Credential fields are stricter: a field written as an env reference that resolves to
+  nothing is now rejected, so a stray `PVE1_PASSWORD=` line fails at startup instead
+  of authenticating with an empty credential. The error names only the config field:
+  config-load failures are logged, and every part of a credential field — the variable
+  name included — is potentially sensitive.
+
 ## [0.5.0] - 2026-08-01
 
 ### Added
