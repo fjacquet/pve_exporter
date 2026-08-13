@@ -19,7 +19,9 @@ history between tags.
   always has.
   Credential fields are stricter: a field written as an env reference that resolves to
   nothing is now rejected, so a stray `PVE1_PASSWORD=` line fails at startup instead
-  of authenticating with an empty credential.
+  of authenticating with an empty credential. The error names only the config field:
+  config-load failures are logged, and every part of a credential field — the variable
+  name included — is potentially sensitive.
 
 ## [0.5.0] - 2026-08-01
 
