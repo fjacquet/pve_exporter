@@ -19,3 +19,9 @@ updates:
       default-days: 7
     commit-message:
       prefix: build
+    ignore:
+      # Pre-release base images are never appropriate for a production image.
+      # Dependabot sorts golang:1.27rc1 above 1.26.x and proposed exactly that,
+      # so without this it re-opens the same RC bump every week.
+      - dependency-name: "*"
+        versions: ["*.*.*-rc.*", "*.*.*-beta.*"]
