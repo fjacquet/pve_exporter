@@ -23,6 +23,20 @@ history between tags.
   config-load failures are logged, and every part of a credential field — the variable
   name included — is potentially sensitive.
 
+## [0.7.2] - 2026-09-13
+
+### Security
+
+- `google.golang.org/grpc` 1.83.0 -> 1.83.2, fixing **GHSA-vp52-pcj8-j9qc** and
+  **GHSA-2v4p-qf9q-27wj** (HIGH), pulled in with an `otel` 1.45.0 -> 1.46.0 refresh.
+
+### Changed
+
+- `golang.org/x/sync` 0.22.0 -> 0.23.0, `github.com/prometheus/client_model` 0.6.2 ->
+  0.6.3, `github.com/sirupsen/logrus` 1.10.0 -> 1.10.2.
+- Docker base image `golang` moved off the 1.27 release-candidate series
+  (1.27rc1 -> 1.27rc3) onto the stable `golang:1.27` release.
+
 ## [0.5.0] - 2026-08-01
 
 ### Added
