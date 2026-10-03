@@ -10,18 +10,19 @@ history between tags.
 
 ## [Unreleased]
 
+## [0.7.3] - 2026-10-03
+
 ### Added
 
-- `${VAR:-default}` fallbacks in config env references, ported from `pscale_exporter`.
-  Shell / docker-compose semantics: the variable falls back when unset *or* empty, and
-  such a reference never aborts startup. A bare `${VAR}` still fails loudly when the
-  variable is *unset*; an exported-but-empty one expands to the empty string, as it
-  always has.
-  Credential fields are stricter: a field written as an env reference that resolves to
-  nothing is now rejected, so a stray `PVE1_PASSWORD=` line fails at startup instead
-  of authenticating with an empty credential. The error names only the config field:
-  config-load failures are logged, and every part of a credential field — the variable
-  name included — is potentially sensitive.
+- CI: security workflow added, calling the shared `go-security` reusable workflow from `fjacquet/ci`.
+
+### Changed
+
+- Go 1.26.6 -> 1.27.1 (`go` directive in `go.mod`, Dockerfile builder image).
+- Makefile tool pins: golangci-lint v2.12.2 -> v2.13.2, goreleaser v2.16.0 -> v2.18.0.
+- Dependencies refreshed with `go get -u ./...`: OpenTelemetry 1.46.0 -> 1.47.0,
+  `prometheus/common` 0.71.0 -> 0.72.0.
+- `google.golang.org/grpc` kept at 1.83.2: 1.84.0 is affected by **GO-2026-6443**.
 
 ## [0.7.2] - 2026-09-13
 
@@ -36,6 +37,21 @@ history between tags.
   0.6.3, `github.com/sirupsen/logrus` 1.10.0 -> 1.10.2.
 - Docker base image `golang` moved off the 1.27 release-candidate series
   (1.27rc1 -> 1.27rc3) onto the stable `golang:1.27` release.
+
+## [0.7.0] - 2026-08-15
+
+### Added
+
+- `${VAR:-default}` fallbacks in config env references, ported from `pscale_exporter`.
+  Shell / docker-compose semantics: the variable falls back when unset *or* empty, and
+  such a reference never aborts startup. A bare `${VAR}` still fails loudly when the
+  variable is *unset*; an exported-but-empty one expands to the empty string, as it
+  always has.
+  Credential fields are stricter: a field written as an env reference that resolves to
+  nothing is now rejected, so a stray `PVE1_PASSWORD=` line fails at startup instead
+  of authenticating with an empty credential. The error names only the config field:
+  config-load failures are logged, and every part of a credential field — the variable
+  name included — is potentially sensitive.
 
 ## [0.5.0] - 2026-08-01
 
@@ -170,7 +186,8 @@ history between tags.
 
 - Initial release: Prometheus + OTLP exporter for Proxmox VE.
 
-[Unreleased]: https://github.com/fjacquet/pve_exporter/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/fjacquet/pve_exporter/compare/v0.7.3...HEAD
+[0.7.3]: https://github.com/fjacquet/pve_exporter/compare/v0.7.2...v0.7.3
 [0.5.0]: https://github.com/fjacquet/pve_exporter/compare/v0.4.3...v0.5.0
 [0.4.2]: https://github.com/fjacquet/pve_exporter/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/fjacquet/pve_exporter/compare/v0.4.0...v0.4.1
